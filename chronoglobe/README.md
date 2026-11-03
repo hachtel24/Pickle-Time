@@ -4,6 +4,16 @@ A Minecraft-style rotating Earth that plays 5,000 years of political borders
 (3000 BCE to 2024 CE) with typed captions, polity labels and a year counter.
 `chronoglobe.html` is fully self-contained (1.8 MB: data, font and three.js inlined).
 
+**Start screen:** play with narration, play silently, or choose a moment.
+**Narration:** the browser's built-in voice reads every caption, and the tour waits
+for the narrator to finish before moving on. Toggle it with the NARRATION button.
+**Menu (☰ or M):** every chapter and all 50 stops; click one to jump there. Chapter
+segments in the progress bar are clickable too.
+**Deep dives:** 25 major events have a fact card (key numbers, what happened, why it
+matters). Open one from the menu, or from the DEEP DIVE button that appears while
+that event plays; WATCH THIS MOMENT jumps to it and READ ALOUD narrates the card.
+Every zoom-in also ends with an extra aftermath scene.
+
 **Controls:** space or click PAUSE to pause · drag to look around · scroll to zoom ·
 scrubber to jump · add `?rec=1` to hide the controls for screen recording ·
 add `?t=63` to freeze on a given second.

@@ -69,6 +69,49 @@ body.theater #year,body.theater #era{display:none}
 #card .n{font-size:14px;letter-spacing:4px;color:#f0a830}
 #card .t{font-size:clamp(26px,5vw,56px);color:#fff04a;text-shadow:3px 3px 0 #6b5a12;margin:8px 0 6px;white-space:nowrap}
 #card .y{font-size:15px;letter-spacing:2px;color:rgba(241,239,232,.8)}
+
+#start,#menu,#deep{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:20;padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+#start{background:radial-gradient(ellipse at 50% 45%,rgba(20,24,40,.35),rgba(10,12,20,.82))}
+#menu,#deep{background:rgba(6,8,14,.6)}
+#start[hidden],#menu[hidden],#deep[hidden],#deepBtn[hidden]{display:none!important}
+.box,.panel{background:rgba(12,10,26,.94);border:3px solid #3a2f6e;color:#f1efe8}
+.box{padding:28px 34px;text-align:center;max-width:760px}
+.box .k,.panel .k{color:#f0a830;font-size:13px;letter-spacing:3px}
+.box h1{font-weight:normal;font-size:clamp(34px,7vw,72px);color:#fff04a;text-shadow:4px 4px 0 #6b5a12;margin:10px 0 6px;letter-spacing:3px}
+.box p{color:rgba(241,239,232,.8);margin:0 0 20px;font-size:15px}
+.row{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
+#start button,#menu button,#deep button,#deepBtn{font:14px Monocraft,ui-monospace,monospace;color:#f1efe8;background:#1e1a3a;border:2px solid #4a3f86;padding:9px 14px;cursor:pointer}
+#start button:hover,#menu button:hover,#deep button:hover,#deepBtn:hover{border-color:#fff04a}
+button:focus-visible{outline:2px solid #fff04a;outline-offset:2px}
+button.pri{background:#c8382f!important;border-color:#e8574d!important}
+.panel{width:min(900px,100%);max-height:100%;overflow:auto;padding:18px 20px;position:relative}
+.panel .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;color:#fff04a;letter-spacing:2px}
+#mList section{margin-bottom:14px}
+#mList .ch{width:100%;text-align:left;display:flex;gap:12px;align-items:baseline;flex-wrap:wrap;background:#2a2150!important;color:#fff04a!important;font-size:17px!important}
+#mList .ch span{color:#f0a830;font-size:12px;letter-spacing:2px}
+#mList .ch em{font-style:normal;color:rgba(241,239,232,.7);font-size:12px;margin-left:auto}
+.ev{display:flex;gap:6px;margin-top:5px}
+.ev .go{flex:1;min-width:0;text-align:left;display:flex;gap:12px;align-items:baseline;background:rgba(30,26,58,.6)!important;border-color:rgba(74,63,134,.6)!important}
+.ev .y{color:#f0a830;min-width:9.5em;flex-shrink:0;font-size:12px}
+.ev .tx{flex:1;min-width:0;font-size:13px;line-height:1.4}
+.ev .info{font-size:11px!important;color:#9fd36a!important;white-space:nowrap}
+.tag{font-size:10px;padding:2px 6px;letter-spacing:1px;white-space:nowrap;align-self:center}
+.tag.z{background:#c8382f;color:#fff}
+#dClose,#mClose{position:sticky;top:0;float:right;padding:4px 10px!important}
+#dBody h2{font-weight:normal;color:#fff04a;font-size:clamp(22px,3.6vw,36px);margin:6px 0 14px;text-shadow:3px 3px 0 #6b5a12}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:14px}
+.stats div{background:#1e1a3a;border:2px solid #4a3f86;padding:8px 10px}
+.stats b{display:block;font-weight:normal;font-size:20px;color:#9fd36a}
+.stats span{font-size:12px;color:rgba(241,239,232,.75)}
+#dBody ul{margin:0 0 14px;padding-left:20px;line-height:1.6;font-size:14px;max-width:70ch}
+#dBody li{margin-bottom:6px}
+.why{border-left:4px solid #f0a830;padding:6px 12px;background:rgba(240,168,48,.08);margin-bottom:16px;font-size:14px;line-height:1.55}
+.why span{display:block;color:#f0a830;font-size:11px;letter-spacing:2px;margin-bottom:3px}
+#deepBtn{position:fixed;top:calc(18px + env(safe-area-inset-top,0px));right:max(22px,env(safe-area-inset-right,0px));z-index:6;background:rgba(14,10,30,.88)!important;color:#9fd36a!important;max-width:44vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+body.rec #deepBtn{display:none!important}
+#bar{z-index:7}
+@media (max-width:760px){.ev .y{min-width:6.5em}.ev .go{flex-direction:column;gap:2px}#deepBtn{font-size:11px!important;top:auto;bottom:calc(150px + env(safe-area-inset-bottom,0px));right:12px;max-width:70vw}.box{padding:20px 16px}}
+body:has(#start:not([hidden])) #credits{opacity:0!important}
 </style>
 </head>
 <body>
@@ -576,6 +619,25 @@ function updateDio(u){const st=dio.site,S=st.S;nd=0;st.followY=0;
 function ensureSite(key){if(dio.key!==key){buildSite(key);dio.dirty=true}}
 
 // ---------------- the tour: [year, lat, lon, caption, battlefield?]
+// ---------------- deeper zoom-ins: an aftermath caption at the end of each battlefield
+const AFTER={
+ giza:['c. 2560 BCE',"Papyri found at Wadi al-Jarf record crews shipping limestone along the Nile to Giza. The builders were paid, organised workers, not slaves."],
+ gaugamela:['330 BCE',"Darius is murdered by one of his own governors. Alexander's empire soon stretches from Greece to the edge of India."],
+ pompeii:['1748',"Rediscovered in 1748, Pompeii's buried streets, homes and graffiti give the clearest snapshot of daily Roman life anywhere."],
+ hastings:['1086',"The Normans remake England with stone castles and a French-speaking ruling class. In 1086 they survey the whole kingdom in the Domesday Book."],
+ constantinople:['1453',"Mehmed II makes the city his capital. As Istanbul it rules the Ottoman Empire for nearly 470 years."],
+ armada:['AUTUMN 1588',"Storms off Scotland and Ireland wreck dozens of Spanish ships. England's navy emerges as a rising power."],
+ bastille:['14 JUL',"The fortress held only seven prisoners, but its fall became the symbol of the Revolution. 14 July is now France's national day."],
+ waterloo:['1815',"Napoleon is exiled to St Helena in the South Atlantic and dies there in 1821. The Congress of Vienna redraws the map of Europe."],
+ marne:['NOV 1914',"Each side tries to outflank the other in a race to the sea. By November a line of trenches runs from Switzerland to the North Sea."],
+ alamein:['NOV 1942',"Churchill: 'Before Alamein we never had a victory. After Alamein we never had a defeat.'"],
+ normandy:['AUG 1944',"After weeks of fighting through the Normandy hedgerows, the Allies break out. Paris is liberated on 25 August."],
+ apollo:['24 JUL 1969',"Around 600 million people watched the Moon landing live. The crew splashed down safely in the Pacific on 24 July."],
+ berlin:['1961–1989',"Built in 1961, the Wall stood for 28 years. At least 140 people were killed at the Wall trying to cross it."],
+};
+for(const k in AFTER){const S=SITES[k];if(!S)continue;S.caps.push([S.dur,AFTER[k][0],AFTER[k][1]]);S.dur+=6}
+
+
 const C=(n,la,lo)=>[n,la,lo,1];  // country tag; plain [name,lat,lon] is a city tag
 const TOUR=[
  // 1 First Empires
@@ -722,9 +784,99 @@ scrub.oninput=()=>{T=scrub.value/1000*TOTAL};
 addEventListener('keydown',e=>{if(e.code==='Space'){setPlay(!playing);e.preventDefault()}});
 addEventListener('resize',()=>{camera.aspect=dio.cam.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();dio.cam.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
 
+// ---------------- deep-dive cards: [year, word in caption, card]
+const DEEP_SRC=[
+ [-2560,'monuments',{t:'The Great Pyramid of Giza',d:'c. 2560 BCE',p:'Giza, Egypt',s:[['146 m','original height'],['~2.3 million','stone blocks'],['~20 years','to build']],f:["Built for King Khufu of Egypt's Fourth Dynasty.","Fine white limestone casing came by boat from Tura, across the Nile.","Workers lived in a planned town beside the site, with bakeries and breweries."],w:"The tallest structure on Earth for nearly 4,000 years, and proof of how much an early state could organise."}],
+ [-331,'Alexander',{t:'Battle of Gaugamela',d:'1 October 331 BCE',p:'Near modern Erbil, Iraq',s:[['~47,000','Macedonian army'],['far larger','Persian host'],['1 day','to decide an empire']],f:["Darius chose flat ground so his scythed chariots could charge. Alexander's infantry opened lanes and let them through.","Alexander led his Companion cavalry into a gap in the Persian line, straight at Darius.","Darius fled the field and was killed by his own governor Bessus the next year."],w:"It ended the Achaemenid Persian Empire and spread Greek culture from Egypt to Central Asia."}],
+ [79,'Vesuvius',{t:'Eruption of Vesuvius',d:'79 CE',p:'Bay of Naples, Italy',s:[['~33 km','ash column'],['2 towns','buried'],['1,700 years','hidden']],f:["Pliny the Younger watched from across the bay and wrote the only eyewitness account.","His uncle, Pliny the Elder, led a rescue fleet from Misenum and died on the shore.","Pyroclastic flows of hot gas and ash killed those who stayed in Pompeii and Herculaneum."],w:"The ash froze a Roman town in place, giving archaeologists a uniquely complete picture of ancient life."}],
+ [476,'Western Roman',{t:'Fall of the Western Roman Empire',d:'476 CE',p:'Ravenna, Italy',s:[['1,000+ years','of Rome'],['476','last western emperor deposed']],f:["The Germanic general Odoacer deposed the boy emperor Romulus Augustulus.","The west had been weakened for decades by civil wars, invasions and a shrinking tax base.","The eastern half, ruled from Constantinople, survived until 1453."],w:"Historians use 476 to mark the end of antiquity in Western Europe and the start of the Middle Ages."}],
+ [632,'Islam',{t:'The Rise of Islam',d:'610–750 CE',p:'Arabia to Spain and the Indus',s:[['632','death of Muhammad'],['~100 years','to reach Spain and India']],f:["Muhammad united much of Arabia before his death in 632.","Within a century the caliphates ruled from Spain to Central Asia.","Arabic became a language of science, philosophy and trade across this world."],w:"It created one of the world's major religions and a civilisation that preserved and advanced Greek, Persian and Indian learning."}],
+ [1066,'Normans',{t:'Battle of Hastings',d:'14 October 1066',p:'Battle, East Sussex, England',s:[['~7,000','men on each side (estimated)'],['3 weeks','after Stamford Bridge'],['1 day','to change England']],f:["Harold had just defeated a Norwegian invasion in the north and marched his army south.","His shield wall held for hours on Senlac Hill.","Norman feigned retreats drew Saxons off the hill. Harold was killed late in the day."],w:"Norman rule reshaped England's language, law, architecture and ruling class."}],
+ [1279,'Mongol',{t:'The Mongol Empire',d:'1206–1368',p:'From Korea to Hungary',s:[['~24 million km²','at its height'],['1279','conquest of Song China']],f:["Genghis Khan united the Mongol tribes in 1206.","His grandson Kublai Khan completed the conquest of China in 1279.","The empire protected Silk Road trade, carrying goods, ideas and also plague across Eurasia."],w:"The largest contiguous land empire in history, it linked East and West as never before."}],
+ [1347,'Black Death',{t:'The Black Death',d:'1347–1351',p:'Europe, Asia and North Africa',s:[['1/3 to 1/2','of Europe died'],['~4 years','to sweep Europe']],f:["Plague reached Europe through Black Sea trade ports and Italian ships.","The bacterium Yersinia pestis spread through fleas and between people.","Labour shortages afterward pushed up wages and weakened serfdom."],w:"The deadliest pandemic in recorded history reshaped Europe's economy and society."}],
+ [1453,'Ottoman',{t:'Fall of Constantinople',d:'6 April – 29 May 1453',p:'Constantinople (Istanbul)',s:[['53 days','of siege'],['~7,000','defenders'],['~50,000+','Ottoman troops']],f:["Mehmed II was just 21 years old.","Huge bronze bombards battered the 1,000-year-old Theodosian Walls.","Ottoman ships were hauled overland on greased logs into the Golden Horn. The last emperor, Constantine XI, died in the final assault."],w:"It ended the Byzantine Empire and made the Ottomans a great power astride Europe and Asia."}],
+ [1492,'Columbus',{t:'Columbus Reaches the Americas',d:'12 October 1492',p:'The Bahamas and the Caribbean',s:[['3 ships','Niña, Pinta, Santa María'],['~10 weeks','from Spain']],f:["Columbus was trying to reach Asia by sailing west.","He landed on an island its Taíno people called Guanahani.","The Columbian Exchange moved crops, animals and diseases between hemispheres, with devastating effects on Indigenous peoples."],w:"It began lasting contact between Europe and the Americas and reshaped the whole world."}],
+ [1588,'Armada',{t:'The Spanish Armada',d:'July–September 1588',p:'English Channel',s:[['~130','Spanish ships'],['8 fireships','sent at Calais'],['dozens','wrecked by storms']],f:["Philip II of Spain aimed to invade England and overthrow Elizabeth I.","English fireships forced the anchored fleet to cut its cables and scatter.","At Gravelines the faster English ships fought at close range. Storms did the rest."],w:"It secured Protestant England and marked the rise of English sea power."}],
+ [1776,'independence',{t:'American Declaration of Independence',d:'4 July 1776',p:'Philadelphia',s:[['13','colonies'],['1783','Treaty of Paris']],f:["Thomas Jefferson drafted the Declaration for the Continental Congress.","The war lasted until the British surrender at Yorktown in 1781.","Britain recognised American independence in the 1783 Treaty of Paris."],w:"Its ideas of natural rights and government by consent inspired revolutions around the world."}],
+ [1789,'France',{t:'Storming of the Bastille',d:'14 July 1789',p:'Paris',s:[['7','prisoners inside'],['~100','attackers killed'],['4 years','until the king is executed']],f:["Crowds came for the gunpowder stored in the fortress.","The governor, de Launay, surrendered and was killed by the crowd.","Louis XVI was executed in January 1793."],w:"The French Revolution spread ideas of citizenship, equality and nationalism across Europe."}],
+ [1815,'Napoleon',{t:'Battle of Waterloo',d:'18 June 1815',p:'Near Brussels, Belgium',s:[['~72,000','French'],['~68,000','Wellington'],['~50,000','Prussians arriving']],f:["Napoleon delayed his attack after overnight rain soaked the ground.","The farms of Hougoumont and La Haye Sainte became bloody strongpoints.","Blücher's Prussians arrived on the French flank in the afternoon."],w:"It ended the Napoleonic Wars and began a century without a general European war."}],
+ [1914,'World War I',{t:'First Battle of the Marne',d:'6–12 September 1914',p:'East of Paris',s:[['~600','Paris taxis'],['~2 million','soldiers engaged'],['4 years','of trench war to follow']],f:["Germany's Schlieffen Plan aimed to knock France out in six weeks.","A gap opened between two German armies and French and British forces struck it.","Requisitioned Paris taxis helped rush reinforcements to the front."],w:"Germany's hopes of a quick victory died, and the war became a long stalemate in the trenches."}],
+ [1917,'Bolsheviks',{t:'The Russian Revolution',d:'March and November 1917',p:'Petrograd',s:[['1917','end of the tsars'],['1922','USSR founded']],f:["In March the Tsar abdicated amid war, hunger and strikes.","In November Lenin's Bolsheviks seized power from the Provisional Government.","A brutal civil war followed until 1922."],w:"It created the world's first communist state, which shaped the twentieth century."}],
+ [1941,'Pearl Harbor',{t:'Attack on Pearl Harbor',d:'7 December 1941',p:'Oahu, Hawaii',s:[['2,403','Americans killed'],['~350','Japanese aircraft'],['1 day','to declaration of war']],f:["Japan aimed to cripple the US Pacific Fleet before expanding across Southeast Asia.","The American aircraft carriers were at sea and escaped.","Germany declared war on the US four days later."],w:"It brought the United States into World War II, turning it into a truly global war."}],
+ [1942,'El Alamein',{t:'Second Battle of El Alamein',d:'23 October – 11 November 1942',p:'Western Desert, Egypt',s:[['~195,000','Allied troops'],['~116,000','Axis troops'],['12 days','of fighting']],f:["Rommel's Afrika Korps was within reach of Alexandria and the Suez Canal.","Montgomery's Eighth Army cleared paths through vast minefields under heavy artillery fire.","The Axis retreated more than 1,500 km west."],w:"The first great British land victory of the war, and the end of Axis hopes in Egypt."}],
+ [1943,'Stalingrad',{t:'Battle of Stalingrad',d:'August 1942 – 2 February 1943',p:'Stalingrad (Volgograd), USSR',s:[['~2 million','estimated casualties'],['~91,000','Germans captured']],f:["Fighting raged street by street through the ruined city.","In November the Soviets encircled the German Sixth Army.","Field Marshal Paulus surrendered on 2 February 1943."],w:"The turning point on the Eastern Front. Germany never again launched a major offensive that succeeded there."}],
+ [1944,'second front',{t:'D-Day',d:'6 June 1944',p:'Normandy, France',s:[['~156,000','troops landed'],['~7,000','ships and boats'],['5','beaches']],f:["Utah, Omaha, Gold, Juno and Sword: American, British and Canadian troops landed on a 80 km front.","Omaha Beach saw the heaviest casualties.","Deception plans convinced Germany the main attack would come at Calais."],w:"It opened the Western Front that, with the Soviet advance, defeated Nazi Germany within a year."}],
+ [1947,'India',{t:'Independence and Partition of India',d:'15 August 1947',p:'British India',s:[['10–20 million','people displaced'],['2','new states']],f:["Decades of nationalist struggle, led by Gandhi and Nehru among others, ended British rule.","The subcontinent was split into India and Pakistan along religious lines.","Mass migration and violence killed hundreds of thousands, by some estimates far more."],w:"It began the end of the European empires in Asia and created the world's largest democracy."}],
+ [1962,'Missile',{t:'Cuban Missile Crisis',d:'16–28 October 1962',p:'Cuba, Washington, Moscow',s:[['13 days','of crisis'],['~145 km','from Cuba to Florida']],f:["US spy planes photographed Soviet nuclear missile sites being built in Cuba.","Kennedy ordered a naval quarantine of the island.","Khrushchev withdrew the missiles; the US secretly agreed to remove its missiles from Turkey."],w:"The closest the Cold War came to nuclear war. Afterwards a hotline linked Washington and Moscow."}],
+ [1969,'Moon',{t:'Apollo 11',d:'16–24 July 1969',p:'Kennedy Space Center to the Sea of Tranquility',s:[['110 m','Saturn V height'],['~384,000 km','to the Moon'],['~600 million','watched live']],f:["Neil Armstrong and Buzz Aldrin landed on 20 July; Michael Collins orbited above.","Armstrong: 'That's one small step for man, one giant leap for mankind.'","The crew brought back about 22 kg of Moon rock."],w:"The first time humans stood on another world, and a turning point of the Space Race."}],
+ [1989,'Eastern Europe',{t:'Fall of the Berlin Wall',d:'9 November 1989',p:'Berlin',s:[['28 years','the Wall stood'],['155 km','long'],['≥140','killed at the Wall']],f:["An East German spokesman mistakenly announced that the border was open 'immediately'.","Crowds gathered at the checkpoints until the guards let them through.","Germany reunified on 3 October 1990."],w:"It symbolised the end of the Cold War division of Europe."}],
+ [1991,'Soviet Union',{t:'Collapse of the Soviet Union',d:'26 December 1991',p:'Moscow',s:[['15','new states'],['69 years','of the USSR']],f:["Gorbachev's reforms loosened control but could not fix the economy.","A failed hard-line coup in August 1991 sped up the breakup.","Gorbachev resigned on 25 December and the USSR was dissolved the next day."],w:"It ended the Cold War and left the United States as the sole superpower."}],
+];
+const DEEP={};for(const[y,w,card]of DEEP_SRC){const i=TOUR.findIndex(t=>t[0]===y&&t[3].includes(w));if(i>=0)DEEP[i]=card;else console.warn('deep-dive not matched',y,w)}
+
+// ---------------- narration (browser speech; the tour waits for the narrator)
+const MONTHS={JAN:'January',FEB:'February',MAR:'March',APR:'April',MAY:'May',JUN:'June',JUL:'July',AUG:'August',SEP:'September',OCT:'October',NOV:'November',DEC:'December'};
+const sayDate=d=>d.replace(/^c\. /,'Around ').replace(/\b([A-Z]{3})\b/g,m=>MONTHS[m]||m).replace(/BCE/g,'B.C.').replace(/\bCE\b/g,'A.D.').replace(/[–-]/g,' to ');
+const narr={ok:'speechSynthesis' in window,on:false,key:null,busy:false,t0:0,est:0,voice:null};
+function pickVoice(){if(!narr.ok)return;const v=speechSynthesis.getVoices().filter(v=>/^en/i.test(v.lang));
+  narr.voice=v.find(x=>/natural|neural/i.test(x.name))||v.find(x=>/Google UK English Male|Daniel|Arthur|Google US English/i.test(x.name))||v.find(x=>/en-GB/i.test(x.lang))||v[0]||null}
+if(narr.ok){pickVoice();speechSynthesis.onvoiceschanged=pickVoice}
+function speak(key,text){if(!narr.ok||!narr.on||narr.key===key)return;narr.key=key;speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(text.replace(/\bc\. /g,'circa ').replace(/\bBCE\b/g,'B.C.').replace(/km²/g,'square kilometres').replace(/\bkm\b/g,'kilometres'));
+  if(narr.voice)u.voice=narr.voice;u.rate=1.02;u.pitch=.95;narr.busy=true;narr.t0=performance.now();narr.est=1500+text.length*75;
+  u.onend=u.onerror=()=>{if(narr.key===key)narr.busy=false};speechSynthesis.speak(u)}
+function hush(){narr.key=null;narr.busy=false;if(narr.ok)speechSynthesis.cancel()}
+const stillTalking=()=>narr.on&&narr.busy&&performance.now()-narr.t0<narr.est*1.5;
+// what should be said right now, and is the timeline at a point where it must wait?
+function narration(s){if(s.mode==='card')return['c'+s.c,`Chapter ${s.c+1}. ${CHAP[s.c][1]}.`,s.u>CARD-.4];
+  if(s.mode==='globe'&&s.cu>=0&&s.cu<50){const x=TOUR[s.ci],d=x[5]&&x[5].date;return['h'+s.ci,(d?sayDate(d)+'. ':'')+x[3],s.cu>HOLD-.3]}
+  if(s.mode==='dio'){const S=SITES[s.site];let c=0;S.caps.forEach((x,k)=>{if(s.u>=x[0])c=k});const nx=c+1<S.caps.length?S.caps[c+1][0]:S.dur;return['d'+s.site+c,sayDate(S.caps[c][1])+'. '+S.caps[c][2],s.u>nx-.35]}
+  return null}
+
+// ---------------- menu, deep-dive card, start screen
+const ui=document.createElement('div');ui.innerHTML=`
+<div id="start"><div class="box"><div class="k">5,000 YEARS · 8 CHAPTERS · 13 ZOOM-INS</div><h1>CHRONOGLOBE</h1><p>A voxel history of the world, from the first cities to today.</p>
+<div class="row"><button id="goNarr" class="pri">▶ PLAY WITH NARRATION</button><button id="goMute">▶ PLAY WITHOUT SOUND</button><button id="goMenu">☰ CHOOSE A MOMENT</button></div></div></div>
+<div id="menu" hidden><div class="panel"><div class="top"><b>CHOOSE A MOMENT</b><button id="mClose" aria-label="Close menu">✕</button></div><div id="mList"></div></div></div>
+<div id="deep" hidden><div class="panel"><button id="dClose" aria-label="Close">✕</button><div id="dBody"></div>
+<div class="row"><button id="dWatch" class="pri">▶ WATCH THIS MOMENT</button><button id="dRead">🔊 READ ALOUD</button></div></div></div>
+<button id="deepBtn" hidden></button>`;document.body.appendChild(ui);
+const $=id=>document.getElementById(id);
+const tag=(t,c)=>`<span class="tag ${c}">${t}</span>`;
+$('mList').innerHTML=CHAP.map((c,k)=>{const rows=TOUR.map((t,i)=>[t,i]).filter(([t])=>chapOf(t[0])===k);
+  return`<section><button class="ch" data-c="${k}"><span>CHAPTER ${k+1}</span>${esc(c[1])}<em>${chapYears[k]}</em></button>`+rows.map(([t,i])=>`<div class="ev"><button class="go" data-i="${i}"><span class="y">${esc((t[5]&&t[5].date)||yrTxt(t[0]))}</span><span class="tx">${esc(DEEP[i]?DEEP[i].t:t[3])}</span>${t[4]?tag('ZOOM-IN','z'):''}</button>${DEEP[i]?`<button class="info" data-i="${i}" aria-label="Deep dive">DEEP DIVE</button>`:''}</div>`).join('')+'</section>'}).join('');
+function evStart(i){for(const sg of SEGS)if(sg.i===i&&(sg.k==='move'||sg.k==='hold'||sg.k==='card'))return sg.t0;return 0}
+function chapStart(c){const sg=SEGS.find(x=>x.k==='card'&&x.c===c);return sg?sg.t0:0}
+function jump(t){hush();T=t;idle=99;closeAll();setPlay(true)}
+function closeAll(){$('menu').hidden=true;$('deep').hidden=true}
+let deepI=-1;
+function openDeep(i){const d=DEEP[i];if(!d)return;deepI=i;setPlay(false);hush();$('menu').hidden=true;
+  $('dBody').innerHTML=`<div class="k">${esc(d.d)} · ${esc(d.p)}</div><h2>${esc(d.t)}</h2><div class="stats">${d.s.map(x=>`<div><b>${esc(x[0])}</b><span>${esc(x[1])}</span></div>`).join('')}</div><ul>${d.f.map(x=>`<li>${esc(x)}</li>`).join('')}</ul><div class="why"><span>WHY IT MATTERS</span>${esc(d.w)}</div>`;
+  $('deep').hidden=false}
+$('mList').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.classList.contains('info'))openDeep(+b.dataset.i);else if(b.classList.contains('go'))jump(evStart(+b.dataset.i));else if(b.classList.contains('ch'))jump(chapStart(+b.dataset.c))});
+$('mClose').onclick=closeAll;$('dClose').onclick=closeAll;
+$('dWatch').onclick=()=>jump(evStart(deepI));
+$('dRead').onclick=()=>{const d=DEEP[deepI];if(!d||!narr.ok)return;const was=narr.on;narr.on=true;narr.key=null;speak('deep'+deepI,`${d.t}. ${sayDate(d.d)}. ${d.f.join(' ')} Why it matters: ${d.w}`);narr.on=was;if(!was)narr.key=null};
+$('deepBtn').onclick=()=>openDeep(+$('deepBtn').dataset.i);
+const startGo=(n)=>{narr.on=n&&narr.ok;updNarrBtn();$('start').hidden=true;setPlay(true)};
+$('goNarr').onclick=()=>startGo(true);$('goMute').onclick=()=>startGo(false);$('goMenu').onclick=()=>{narr.on=narr.ok;updNarrBtn();$('start').hidden=true;$('menu').hidden=false};
+if(!narr.ok){$('goNarr').hidden=true;$('dRead').hidden=true}
+// bar buttons
+const bar=$('bar');bar.insertAdjacentHTML('afterbegin','<button id="menuBtn">☰ MENU</button>');bar.insertAdjacentHTML('beforeend','<button id="narrBtn"></button>');
+$('menuBtn').onclick=()=>{setPlay(false);hush();$('menu').hidden=false};
+function updNarrBtn(){$('narrBtn').textContent=narr.on?'🔊 NARRATION ON':'🔈 NARRATION OFF'}updNarrBtn();if(!narr.ok)$('narrBtn').hidden=true;
+$('narrBtn').onclick=()=>{narr.on=!narr.on;if(!narr.on)hush();updNarrBtn()};
+chapEl.style.pointerEvents='auto';chapEl.querySelectorAll('.track i').forEach((el,k)=>{el.style.cursor='pointer';el.title=`Chapter ${k+1}: ${CHAP[k][1]}`;el.onclick=()=>jump(chapStart(k))});
+addEventListener('keydown',e=>{if(e.key==='Escape')closeAll();if(e.key==='m'||e.key==='M'){setPlay(false);hush();$('menu').hidden=!$('menu').hidden}});
+scrub.addEventListener('input',hush);
+// per-frame: narration + deep-dive button
+function uiFrame(s){const x=s.mode==='dio'?s.i:s.mode==='globe'&&s.cu<50?s.ci:s.i;const b=$('deepBtn');
+  if(DEEP[x]&&s.mode!=='intro'&&s.mode!=='card'){if(b.dataset.i!=x){b.dataset.i=x;b.textContent='ⓘ DEEP DIVE: '+DEEP[x].t}b.hidden=false}else b.hidden=true;
+  const n=narration(s);if(n&&playing)speak(n[0],n[1]);return!!(n&&n[2]&&stillTalking())}
+
 let rotX=0,rotY=0,lastLabK=-1,prev=performance.now();const PV=new THREE.Vector3();
 function render(now,dtOverride){const dt=dtOverride??Math.min(.1,(now-prev)/1000);prev=now;const still=dtOverride!==undefined;
-  if(playing){T+=dt;if(T>TOTAL)T=0}idle+=dt;scrub.value=T/TOTAL*1000;
+  const wait=uiFrame(tourAt(Math.min(T,TOTAL-.001)));if(playing&&!wait){T+=dt;if(T>TOTAL){T=0;hush()}}idle+=dt;scrub.value=T/TOTAL*1000;
   const s=tourAt(Math.min(T,TOTAL-.001));
   document.body.classList.toggle('indio',s.mode==='dio');
   updChap(s);
@@ -739,7 +891,7 @@ function render(now,dtOverride){const dt=dtOverride??Math.min(.1,(now-prev)/1000
   // globe modes
   let k=0;for(let j=0;j<YEARS.length;j++)if(YEARS[j]<=s.year+1e-6)k=j;
   const al=s.year>=1938.99&&s.year<=1945.01;setKey(k,still,al);stepRecolor();if(still)while(pend)stepRecolor();
-  const opt=TOUR[s.ci][5],th=(s.mode==='globe')&&s.cu>-50&&opt&&opt.date;document.body.classList.toggle('theater',!!th);if(th)theaterBox(opt.date,al,k,TOUR[s.ci][1],TOUR[s.ci][2]);
+  const opt=TOUR[s.ci][5],th=(s.mode==='globe')&&s.cu>-50&&opt&&opt.date;document.body.classList.toggle('theater',!!th);if(th)theaterBox(s.seg&&s.seg.k==='move'?yrTxt(Math.round(s.year)).replace(' CE',''):opt.date,al,k,s.lat,s.lon);
   labEl.style.opacity=s.mode==='globe'&&!(opt&&opt.labels)?1:0;tEl.style.opacity=s.mode==='globe'&&opt&&opt.labels?1:0;
   if(k!==lastLabK){updLabels(k);lastLabK=k}
   if(idle>4||s.mode!=='globe'){userYaw*=.9;userPitch*=.9}
@@ -758,8 +910,9 @@ function render(now,dtOverride){const dt=dtOverride??Math.min(.1,(now-prev)/1000
 document.getElementById('load').remove();
 window.__seek=t=>{T=t;render(performance.now(),0);render(performance.now(),0)};window.__total=TOTAL;window.__ready=true;
 window.__segs=SEGS.map(s=>[s.k,TOUR[s.i][0],+s.t0.toFixed(1)]);
+if(params.has('t')||params.has('rec')){$('start').hidden=true;document.body.classList.add('nostart')}else setPlay(false);
 if(params.has('t')){setPlay(false);window.__seek(T)}
-if(!params.has('t'))(function loop(now){render(now);requestAnimationFrame(loop)})(performance.now());
+if(!params.has('t'))(function loop(now){const cover=!playing&&(!$('start').hidden||!$('menu').hidden||!$('deep').hidden);if(!cover&&!window.__freeze)render(now);else prev=now;requestAnimationFrame(loop)})(performance.now());
 })();
 </script>
 </body>
