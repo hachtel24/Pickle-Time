@@ -64,6 +64,11 @@ body.rec #cap{bottom:calc(66px + env(safe-area-inset-bottom,0px))}
 body.theater #datebox{display:block}
 body.theater #year,body.theater #era{display:none}
 @media (max-width:760px){.tlab.country{font-size:13px}.tlab.city{font-size:11px}}
+
+#card{position:fixed;left:50%;top:42%;transform:translate(-50%,-50%);text-align:center;pointer-events:none;opacity:0;background:rgba(10,8,22,.78);border:3px solid #3a2f6e;padding:22px 46px 24px}
+#card .n{font-size:14px;letter-spacing:4px;color:#f0a830}
+#card .t{font-size:clamp(26px,5vw,56px);color:#fff04a;text-shadow:3px 3px 0 #6b5a12;margin:8px 0 6px;white-space:nowrap}
+#card .y{font-size:15px;letter-spacing:2px;color:rgba(241,239,232,.8)}
 </style>
 </head>
 <body>
@@ -208,8 +213,13 @@ const MOD={
  galley:{b:[[0,0,0,4.6,.6,1.2,'W'],[2.5,.2,0,.8,.5,.6,'W'],[0,.6,0,.2,3,.2,'W'],[.08,1.4,0,.08,1.6,2.1,'C'],[0,3.6,0,.05,.42,.65,'T'],[0,.25,.75,3,.06,.35,'W'],[0,.25,-.75,3,.06,.35,'W']]},
  person:{b:[[0,0,0,.24,.34,.18,'P'],[0,.34,0,.3,.34,.22,'R'],[0,.68,0,.22,.22,.22,'S'],[0,.86,0,.23,.06,.23,'Y']]},
  tent:{b:[[0,0,0,1.1,.55,1,'C'],[0,.55,0,.75,.3,.9,'T'],[0,.85,0,.35,.15,.8,'C']]},
+ galleon:{b:[[0,0,0,5,1,1.6,'W'],[-2.1,1,0,1.3,1.1,1.5,'W'],[2.2,1,0,1,.6,1.3,'W'],[-1.1,1,0,.2,4.4,.2,'W'],[.6,1,0,.2,5.2,.2,'W'],[2.1,1,0,.18,3.6,.18,'W'],[-1.05,2.2,0,.1,2.1,2.2,'C'],[.65,2.3,0,.1,2.6,2.6,'C'],[2.15,2.2,0,.1,1.7,1.8,'C'],[.6,6.2,0,.05,.5,.8,'T'],[-1.05,5.4,0,.05,.4,.6,'T'],[.65,3.1,0,.12,.5,.5,'T']],mz:[0,.7,.95]},
+ saturn:{b:[[0,0,0,1.3,1.4,1.3,'V'],[0,1.4,0,1.3,.35,1.3,'D'],[0,1.75,0,1.3,2.6,1.3,'V'],[0,4.35,0,1.25,.3,1.25,'D'],[0,4.65,0,1,2.1,1,'V'],[0,6.75,0,.85,.9,.85,'V'],[0,7.65,0,.55,.7,.55,'G'],[0,8.35,0,.12,1.2,.12,'D'],[0,0,.75,.2,.9,.5,'D'],[0,0,-.75,.2,.9,.5,'D'],[.75,0,0,.5,.9,.2,'D'],[-.75,0,0,.5,.9,.2,'D'],[.66,2.4,0,.04,1.6,.5,'T']]},
+ sled:{b:[[0,0,0,1.4,.18,1,'W'],[0,.18,0,1.1,.75,.9,'M'],[1.6,0,.3,.24,.34,.18,'C'],[1.6,.34,.3,.28,.34,.22,'S'],[1.6,.68,.3,.22,.22,.22,'S'],[1.6,0,-.3,.24,.34,.18,'C'],[1.6,.34,-.3,.28,.34,.22,'S'],[1.6,.68,-.3,.22,.22,.22,'S'],[2.3,0,0,.24,.34,.18,'C'],[2.3,.34,0,.28,.34,.22,'S'],[2.3,.68,0,.22,.22,.22,'S'],[1.9,.4,0,1.3,.04,.04,'W']]},
+ boat:{b:[[0,0,0,3,.45,.9,'W'],[1.6,.2,0,.5,.4,.5,'W'],[0,.45,0,.12,2.2,.12,'W'],[.05,1,0,.06,1.3,1.4,'C'],[-.7,.45,0,1.1,.5,.7,'M']]},
+ shield:{b:[[0,0,0,.26,.34,.2,'L'],[0,.34,0,.3,.36,.24,'K'],[0,.7,0,.22,.22,.22,'S'],[0,.88,0,.26,.1,.26,'H'],[.2,.25,0,.08,.6,.5,'T'],[.45,.62,.14,1.2,.05,.05,'W']]},
 };
-const FIXED={D:'#2b2a2c',S:'#d8a477',W:'#7a5532',B:'#6e4a32',G:'#4f5459',Z:'#a87a3c',Q:'#82b6da',X:'#9b2b24',C:'#efe6cf'};
+const FIXED={V:'#f4f4ef',M:'#e3d3a5',D:'#2b2a2c',S:'#d8a477',W:'#7a5532',B:'#6e4a32',G:'#4f5459',Z:'#a87a3c',Q:'#82b6da',X:'#9b2b24',C:'#efe6cf'};
 const CROWD=['#c0392b','#2e86c1','#f1c40f','#27ae60','#8e44ad','#e67e22','#ecf0f1','#34495e','#d35400','#16a085','#7f8c8d','#e84393'];
 
 // ---------- the six battles
@@ -297,7 +307,7 @@ gaugamela:{title:'Gaugamela',dur:17,yaw:.15,pitch:.88,dist:74,target:[6,0,2],us:
   B.group({m:'horse',team:0,w:8,d:3,sp:2,ax:'z',face:0,path:[[0,-15,22],[4,-15,22],[8,8,31],[10.5,16,7],[13,27,0],[17,44,-2]]});
   B.group({m:'horse',team:0,w:8,d:3,sp:2,ax:'z',face:0,path:[[0,-15,-26],[6,-12,-28],[17,-6,-32]]});
   B.fx({t:[4,15],rate:3,box:[-10,-38,28,40],size:1.2,kind:'dust'});B.fx({t:[10,17],rate:2,box:[20,-12,48,10],size:1.3,kind:'dust'})}},
-berlin:{title:'Brandenburg Gate',dur:16,yaw:-1.45,pitch:.82,dist:68,target:[0,0,0],us:1.4,ground:'city',flat:14,
+berlin:{wallH:1.8,title:'Brandenburg Gate',dur:16,yaw:-1.45,pitch:.82,dist:68,target:[0,0,0],us:1.4,ground:'city',flat:14,
  teams:[{name:'Crowds',T:'#f2c94c',crowd:true},{name:'East German guards',T:'#d63a2f',K:'#5d6648',H:'#4c533b',L:'#4c533b'}],legendExtra:[['The Wall','#e8e4d8']],
  caps:[[0,'9 NOV 1989',"The Berlin Wall opens. Crowds pour across and climb onto the Wall at the Brandenburg Gate."],[8.5,'3 OCT 1990',"Germany reunifies. Within two years the Soviet Union is gone and the Cold War is over."]],
  build(B){const W=[[52.5240,13.3772],[52.5190,13.3768],[52.5168,13.3762],[52.5150,13.3767],[52.5100,13.3765],[52.5088,13.3830],[52.5070,13.3920]].map(p=>B.ll(p[0],p[1]));
@@ -311,12 +321,84 @@ berlin:{title:'Brandenburg Gate',dur:16,yaw:-1.45,pitch:.82,dist:68,target:[0,0,
   B.fx({t:[9,16],rate:3.2,box:[gate[0]-22,gate[1]-26,gate[0]+22,gate[1]+26],alt:[16,30],size:1.4,kind:'firework'})}},
 };
 
+Object.assign(SITES,{
+giza:{title:'Giza',dur:17,yaw:.6,pitch:.58,dist:66,target:[0,2,2],us:1.1,ground:'desert',noWater:true,waterPath:[[30.000,31.1495],[29.988,31.1500],[29.972,31.1505],[29.955,31.151]],waterW:5,
+ teams:[{name:'Royal workforce',T:'#e8c66a',K:'#efe6cf',H:'#2b2a2c',L:'#d8a477'}],legendExtra:[['Limestone blocks','#e3d3a5'],['Nile harbour canal','#3a82c0']],
+ caps:[[0,'c. 2560 BCE',"At Giza, thousands of workers raise the Great Pyramid for King Khufu, hauling stone up ramps on wooden sleds."],[8.5,'c. 2560 BCE',"At 146 metres it will stand as the tallest structure on Earth for nearly 4,000 years."]],
+ build(B){const p=B.ll(29.9792,31.1342);B.label=[p[0],p[1]];SITES.giza.target=[p[0]+3,3,p[1]+6];B.pyramid(p[0],p[1],11,10,1,15.5);
+  const q=[p[0]+9,p[1]+22];for(let k=0;k<26;k++){const x=q[0]+(h1(k)-.5)*12,z=q[1]+(h1(k+9)-.5)*8;B.box(x,B.ground(x,z)-.7,z,1.2,.8,1.2,'#b9a273')}
+  B.town(p[0]+24,p[1]+18,7,6,'mud');B.town(p[0]+28,p[1]-14,5,4,'mud');
+  const ramp=[p[0],p[1]+7];
+  for(let k=0;k<5;k++)B.group({m:'sled',team:0,w:1,d:1,sp:1,ax:'x',loop:9,phase:k*1.8,path:[[0,q[0],q[1]],[4,ramp[0]+2,ramp[1]+5],[7,ramp[0],ramp[1]],[9,ramp[0],ramp[1]]]});
+  const c=B.ll(29.985,31.1498);for(let k=0;k<3;k++)B.group({m:'boat',team:0,w:1,d:1,sp:1,ax:'x',sea:true,loop:14,phase:k*4.6,path:[[0,c[0],-58],[14,c[0],58]]});
+  for(let k=0;k<4;k++)B.group({m:'sled',team:0,w:1,d:1,sp:1,ax:'x',loop:10,phase:k*2.5,path:[[0,c[0]-3,c[1]+4],[6,ramp[0]+3,ramp[1]+6],[10,ramp[0]+3,ramp[1]+6]]});
+  B.group({m:'person',team:0,scatter:[10,7],n:90,path:[[0,p[0]+2,p[1]+12]]});
+  B.fx({t:[0,17],rate:1.2,box:[p[0]-8,p[1]+2,p[0]+14,p[1]+20],size:.7,kind:'dust'})}},
+pompeii:{title:'Pompeii',dur:19,yaw:-.75,pitch:.42,dist:118,target:[4,16,0],us:1.2,ground:'farm',
+ teams:[{name:'Roman towns',T:'#c8553d'},{name:'Ash and pyroclastic flows',T:'#6b6764'},{name:'Rescue fleet from Misenum',T:'#3d72e8'}],
+ caps:[[0,'79 CE',"Mount Vesuvius erupts. A column of ash and pumice climbs more than 30 kilometres into the sky."],[9,'79 CE',"Pyroclastic flows race down the mountain and bury Herculaneum and Pompeii, preserving them for 1,700 years."]],
+ build(B){const V=B.ll(40.821,14.426),P=B.ll(40.7497,14.4848),H=B.ll(40.8059,14.3477);B.label=[P[0],P[1]];
+  B.town(P[0],P[1],5,4,'roman');B.town(H[0],H[1],3.5,3,'roman');for(let k=0;k<26;k++){const x=-50+h1(k*3)*100,z=-50+h1(k*5)*100;if(!B.water(x,z)&&Math.hypot(x-V[0],z-V[1])>12)B.villa(x,z)}
+  B.plume(V[0],V[1],1.5,62);
+  B.fx({t:[9,19],rate:22,box:[V[0]-36,V[1]-20,V[0]+30,V[1]+44],wave:{from:V,speed:4.2},size:2.4,kind:'ash'});
+  B.fx({t:[2,19],rate:5,box:[V[0]-14,V[1]-14,V[0]+14,V[1]+14],alt:[30,70],size:1.6,kind:'ash'});
+  for(const T of[P,H])B.timed(13,99,T[0],B.ground(T[0],T[1])+.1,T[1],9,1.4,8,'#8a847c');
+  B.group({m:'galley',team:2,w:3,d:1,sp:6,ax:'z',sea:true,K:'#7a5532',path:[[0,-70,30],[19,-34,40]]})}},
+hastings:{title:'Senlac Hill',dur:17,yaw:-.2,pitch:.78,dist:64,target:[0,0,4],us:1.5,ground:'farm',noWater:true,
+ teams:[{name:'Normans',T:'#3d72e8',K:'#3f5f9a',H:'#9aa0a6',L:'#5b4a3a'},{name:'Anglo-Saxons',T:'#d63a2f',K:'#a5352c',H:'#9aa0a6',L:'#5b4a3a'}],
+ caps:[[0,'14 OCT 1066',"At Hastings, Duke William of Normandy attacks King Harold's shield wall on Senlac Hill."],[8.5,'14 OCT 1066',"By dusk Harold is dead and the English line breaks. William is crowned king on Christmas Day."]],
+ build(B){B.label=[0,-8];for(let i=0;i<10;i++)B.copse(-50+h1(i*7)*100,-50+h1(i*3+2)*30);
+  B.group({m:'shield',team:1,w:36,d:4,sp:1.05,ax:'x',face:-Math.PI/2,path:[[0,0,-5],[11.5,0,-5],[17,0,-34]],thin:[10,17,.65]});
+  B.group({m:'soldier',team:0,w:22,d:2,sp:1.6,ax:'x',face:Math.PI/2,path:[[0,0,26],[3,0,15],[17,0,15]],fire:1.2});
+  B.group({m:'soldier',team:0,w:26,d:3,sp:1.3,ax:'x',face:Math.PI/2,path:[[0,0,34],[4,0,34],[7.5,0,-1],[9.5,0,14],[12.5,0,-3],[17,0,-26]],thin:[6,12,.25]});
+  B.group({m:'horse',team:0,w:10,d:2,sp:2,ax:'x',face:Math.PI/2,path:[[0,-22,36],[4,-22,36],[7,-18,0],[8.8,-24,20],[11.5,-14,-3],[17,-8,-28]]});
+  B.group({m:'horse',team:0,w:10,d:2,sp:2,ax:'x',face:Math.PI/2,path:[[0,22,36],[4.5,22,36],[7.5,18,0],[9.2,24,20],[12,14,-3],[17,8,-28]]});
+  B.fx({t:[6,15],rate:3,box:[-30,-8,30,2],size:.9,kind:'earth'})}},
+armada:{title:'Gravelines',dur:17,yaw:Math.PI-.2,pitch:.72,dist:84,target:[4,0,-8],us:1.6,ground:'coastfarm',
+ teams:[{name:'England',T:'#d63a2f'},{name:'Spanish Armada',T:'#e2b43c'}],
+ caps:[[0,'7 AUG 1588',"Off Calais, English fireships drift into the anchored Spanish Armada and scatter it."],[8.5,'8 AUG 1588',"At Gravelines the English fleet closes in. Storms then wreck the Armada as it sails home around Scotland and Ireland."]],
+ build(B){const C=B.ll(50.958,1.853),G=B.ll(50.986,2.128);B.label=[G[0],G[1]];B.town(C[0],C[1]+2,4,3,'flemish');B.town(G[0],G[1]+2,3,2.5,'flemish');
+  B.group({m:'galleon',team:1,w:11,d:2,sp:6,ax:'x',face:Math.PI/2,sea:true,path:[[0,-12,-14],[6.5,-12,-14],[9.5,-4,-26],[17,24,-48]],spread:[6,10,1.8],fire:.8});
+  B.group({m:'galleon',team:0,w:8,d:1,sp:5,ax:'x',sea:true,burn:true,K:'#3a2a1e',path:[[0,-14,-56],[6.5,-12,-20],[8,-12,-17]],thin:[7.2,8.6,1]});
+  B.group({m:'galleon',team:0,w:9,d:2,sp:6,ax:'x',sea:true,face:0,path:[[0,-60,-40],[7,-60,-40],[11,-34,-30],[17,0,-46]],fire:1.6});
+  B.fx({t:[9,17],rate:5,box:[-40,-48,30,-14],size:1.5,kind:'smoke'});B.fx({t:[9,17],rate:2.5,box:[-40,-48,30,-14],size:1,kind:'splash'})}},
+bastille:{wallH:2.8,title:'Bastille',dur:16,yaw:.45,pitch:.78,dist:58,target:[0,1,0],us:1.3,ground:'city',noWater:true,waterPath:[[48.8545,2.345],[48.8505,2.357],[48.846,2.364],[48.842,2.371],[48.838,2.378]],waterW:8,
+ teams:[{name:'Parisian crowds',T:'#3d72e8',crowd:true},{name:'Royal garrison',T:'#d63a2f',K:'#e8e4d8',H:'#2b2a2c',L:'#e8e4d8'}],
+ caps:[[0,'14 JUL 1789',"Parisians storm the Bastille, the royal fortress-prison, in search of gunpowder."],[8.5,'14 JUL 1789',"The fortress falls by evening. The French Revolution has begun, and within four years the king is executed."]],
+ build(B){const b=B.ll(48.8532,2.3692);B.label=[b[0],b[1]];const W=B.bastille(b[0],b[1]);B.town(0,0,58,58,'paris',(x,z)=>Math.hypot(x-b[0],z-b[1])<11);
+  B.group({m:'person',team:0,scatter:[9,7],n:260,path:[[0,b[0]-26,b[1]+2],[6,b[0]-14,b[1]+1],[11,b[0]-9,b[1]]],appear:[0,5]});
+  B.group({m:'person',team:0,scatter:[6,9],n:160,path:[[0,b[0]+4,b[1]+24],[7,b[0]+2,b[1]+12],[12,b[0],b[1]+7]],appear:[1,6]});
+  B.group({m:'person',team:0,along:W,off:0,n:70,onWall:true,appear:[11.5,14.5]});
+  B.group({m:'soldier',team:1,along:W,off:0,n:22,onWall:true,face:Math.PI,fire:1.2,thin:[10,12,.95]});
+  B.group({m:'gun',team:0,w:3,d:1,sp:2.5,ax:'z',face:0,path:[[0,b[0]-12,b[1]]],fire:.9,K:'#5a4a3a'});
+  B.fx({t:[3,11.5],rate:3,box:[b[0]-9,b[1]-4,b[0]+2,b[1]+4],size:1,kind:'smoke'})}},
+waterloo:{title:'Waterloo',dur:18,yaw:-.1,pitch:.82,dist:78,target:[2,0,4],us:1.6,ground:'farm',noWater:true,
+ teams:[{name:'Wellington (Britain & allies)',T:'#d63a2f',K:'#b8322b',H:'#1f1f24',L:'#e8e4d8'},{name:'Napoleon (France)',T:'#3d72e8',K:'#2f4f9a',H:'#1f1f24',L:'#e8e4d8'},{name:'Prussia',T:'#59607a',K:'#2a3046',H:'#1f1f24',L:'#4a4a52'}],
+ caps:[[0,'18 JUN 1815',"At Waterloo, Napoleon attacks Wellington's army on the ridge of Mont-Saint-Jean. French cavalry charges the British squares again and again."],[9,'18 JUN 1815',"Prussian troops arrive from the east and the Imperial Guard breaks. Napoleon's rule ends for good."]],
+ build(B){B.label=[0,-14];B.farmstead(-24,-3);B.farmstead(2,-5);B.farmstead(22,4);B.road([[2,-56],[2,-20],[2,0],[4,30],[6,56]]);B.smoke(-24,-3,3);
+  for(const x of[-14,-4,8,18])B.group({m:'soldier',team:0,w:5,d:5,sp:1.05,ax:'x',face:-Math.PI/2,path:[[0,x,-12]],fire:1.4,thin:[2,12,.25]});
+  B.group({m:'gun',team:0,w:8,d:1,sp:5,ax:'x',face:-Math.PI/2,path:[[0,0,-17]],fire:1});
+  B.group({m:'horse',team:1,w:14,d:3,sp:1.8,ax:'x',face:Math.PI/2,path:[[0,-4,30],[1.5,-4,30],[4.5,-4,-6],[6,-4,8],[8,-4,-6],[9.5,-4,16],[18,-6,24]],thin:[4,10,.45]});
+  B.group({m:'soldier',team:1,w:8,d:8,sp:1.1,ax:'x',face:Math.PI/2,path:[[0,16,28],[3,16,28],[8,14,0],[11,14,10],[18,18,62]],thin:[7,14,.35]});
+  B.group({m:'soldier',team:1,w:10,d:6,sp:1.05,ax:'x',face:Math.PI/2,path:[[0,-2,42],[9,-2,42],[12.5,-2,-4],[14,-2,6],[18,0,64]],thin:[12,18,.5]});
+  B.group({m:'gun',team:1,w:10,d:1,sp:5,ax:'x',face:Math.PI/2,path:[[0,0,20],[13,0,20],[18,0,40]],fire:1.1});
+  B.group({m:'soldier',team:2,w:14,d:4,sp:1.3,ax:'z',face:Math.PI,path:[[0,74,-6],[9,74,-6],[13.5,42,2],[18,24,14]],fire:1.5});
+  B.group({m:'horse',team:2,w:8,d:2,sp:2,ax:'z',face:Math.PI,path:[[0,80,14],[10,80,14],[14,46,20],[18,30,30]]});
+  B.fx({t:[1,17],rate:5,box:[-30,-16,30,8],size:1.2,kind:'smoke'});B.fx({t:[11,18],rate:3,box:[20,-10,46,20],size:1.1,kind:'smoke'})}},
+apollo:{title:'Launch Complex 39A',dur:18,yaw:-1.25,pitch:.3,dist:62,target:[0,8,0],us:1.6,ground:'marsh',follow:true,
+ teams:[{name:'Apollo 11 · Saturn V',T:'#f4f4ef'}],legendExtra:[['Launch tower','#c8452e']],
+ caps:[[0,'16 JUL 1969',"Apollo 11 lifts off from Launch Complex 39A on a Saturn V, the most powerful rocket flown up to that time."],[9,'20 JUL 1969',"Four days later Neil Armstrong and Buzz Aldrin walk on the Moon."]],
+ build(B){const p=B.ll(28.6084,-80.6043);B.label=[p[0],p[1]];const g0=B.ground(p[0],p[1])+.7;B.launchPad(p[0],p[1]);
+  SITES.apollo.target=[p[0],8,p[1]];
+  B.group({m:'saturn',team:0,w:1,d:1,sp:1,ax:'x',path:[[0,p[0],p[1]]],altPath:[[0,g0],[4.2,g0],[17,g0+190]],altEase:true,exhaust:3.4});
+  B.fx({t:[3.4,9],rate:14,box:[p[0]-12,p[1]-12,p[0]+12,p[1]+12],size:2.2,kind:'steam'})}},
+});
 // ---------- build a site
 function buildSite(key){
  const S=SITES[key],D=SD[key],G=D.g,E=D.E,half=G/2;
  const idx=(i,j)=>j*G+i;
  const isW=new Uint8Array(G*G);let landE=[];
- for(let k=0;k<G*G;k++){if(E[k]<=0&&!S.flat&&key!=='marne'&&key!=='gaugamela')isW[k]=1;else landE.push(E[k])}
+ for(let k=0;k<G*G;k++){if(E[k]<=0&&!S.flat&&!S.noWater&&key!=='marne'&&key!=='gaugamela')isW[k]=1;else landE.push(E[k])}
  landE.sort((a,b)=>a-b);const lo=landE[Math.floor(landE.length*.02)]||0,hi=landE[Math.floor(landE.length*.98)]||1;
  const mpl=Math.max(S.flat?S.flat:2.5,(hi-lo)/11);
  const Hh=new Int16Array(G*G);for(let k=0;k<G*G;k++)Hh[k]=isW[k]?0:Math.max(1,Math.min(14,1+Math.round((E[k]-lo)/mpl)));
@@ -326,6 +408,8 @@ function buildSite(key){
    for(let i=0;i<G;i++){const j0=Math.round(rz[i]);for(let j=j0-1;j<=j0+1;j++)if(j>=0&&j<G){isW[idx(i,j)]=1;Hh[idx(i,j)]=0}}}
  const water=(i,j)=>i<0||j<0||i>=G||j>=G?0:isW[idx(i,j)];
  const ci=x=>Math.max(0,Math.min(G-1,Math.floor(x+half))),toX=i=>i-half+.5;
+ if(S.waterPath){const ll0=(lat,lon)=>[(lon-D.lon)*111.32*Math.cos(D.lat*Math.PI/180)/D.km*G,-(lat-D.lat)*111.32/D.km*G];const r=S.waterW/2;
+   walkLine(S.waterPath.map(p=>ll0(p[0],p[1])),.4,(x,z)=>{for(let dz=-r;dz<=r;dz+=.5)for(let dx=-r;dx<=r;dx+=.5){if(dx*dx+dz*dz>r*r)continue;const k2=idx(ci(x+dx),ci(z+dz));isW[k2]=1;Hh[k2]=0}})}
  const ground=(x,z)=>{const k=idx(ci(x),ci(z));return isW[k]?.7:Hh[k]};
  const coastZ=x=>{const i=ci(x);for(let j=0;j<G;j++)if(!isW[idx(i,j)])return toX(j);return 0};
  let cs=0;for(let x=-50;x<=50;x+=5)cs+=coastZ(x);const cAvg=cs/21;
@@ -341,11 +425,11 @@ function buildSite(key){
    _p.set(x,ty-1,z);_s.set(1,1,1);_m.compose(_p,_q0,_s);tTop.setMatrixAt(k,_m);tTop.setColorAt(k,tc);
    _p.set(x,-6,z);_s.set(1,ty-1+6,1);_m.compose(_p,_q0,_s);tBody.setMatrixAt(k,_m);tBody.setColorAt(k,C3(body))}
  tTop.count=tBody.count=G*G;
- let np=0;const PB=[];const TIMED=[];const groups=[],fxs=[],smokes=[];
+ let np=0;const PB=[];const TIMED=[];const groups=[],fxs=[],smokes=[],plumes=[];
  const B={ll,ground,coastZ,cAvg,G,water:(x,z)=>water(ci(x),ci(z)),
   box:(x,y,z,sx,sy,sz,c)=>{if(np<36000)putBox(props,np++,x,y,z,sx,sy,sz,c)},
   timed:(t0,t1,x,y,z,sx,sy,sz,c)=>TIMED.push([t0,t1,x,y,z,sx,sy,sz,c]),
-  group:g=>groups.push(g),fx:f=>fxs.push(f),smoke:(x,z,t0=0)=>smokes.push([x,z,t0]),
+  group:g=>groups.push(g),fx:f=>fxs.push(f),smoke:(x,z,t0=0)=>smokes.push([x,z,t0]),plume:(x,z,t0,h)=>plumes.push([x,z,t0,h]),
   riverZ:x=>rz?toX(Math.round(rz[ci(x)])):0};
  Object.assign(B,PROPS(B));
  S.build(B);props.count=np;
@@ -356,7 +440,8 @@ function buildSite(key){
    else{x=f.box[0]+rnd()*(f.box[2]-f.box[0]);z=f.box[1]+rnd()*(f.box[3]-f.box[1])}
    const y=f.alt?f.alt[0]+rnd()*(f.alt[1]-f.alt[0]):ground(x,z);
    if(f.kind==='splash'&&!B.water(x,z))continue;
-   ev.push({t:f.t[0]+rnd()*(f.t[1]-f.t[0]),x,y,z,s:f.size*(.7+rnd()*.6),kind:f.kind,seed:rnd()*1000})}}
+   let tt=f.t[0]+rnd()*(f.t[1]-f.t[0]);if(f.wave){tt=f.t[0]+Math.hypot(x-f.wave.from[0],z-f.wave.from[1])/f.wave.speed+rnd()*.8;if(tt>f.t[1])continue}
+   ev.push({t:tt,x,y,z,s:f.size*(.7+rnd()*.6),kind:f.kind,seed:rnd()*1000})}}
  // resolve group positions/formations
  for(const g of groups){const n=g.n||(g.w*g.d);g.off=[];g.N=n;
    if(g.along){const P=g.along;let len=0;const seg=[];for(let s=0;s<P.length-1;s++){const l=Math.hypot(P[s+1][0]-P[s][0],P[s+1][1]-P[s][1]);seg.push(l);len+=l}
@@ -368,7 +453,7 @@ function buildSite(key){
    else if(g.scatter){for(let u=0;u<n;u++){const a=h1(u*3.1+n)*Math.PI*2,r=Math.sqrt(h1(u*7.7+1));g.off.push([Math.cos(a)*r*g.scatter[0],Math.sin(a)*r*g.scatter[1]])}}
    else for(let a=0;a<g.d;a++)for(let b=0;b<g.w;b++){const jx=(h2(a+g.w,b)-.5)*g.sp*.3,jz=(h2(b,a+3)-.5)*g.sp*.3;const fa=(b-(g.w-1)/2)*g.sp,da=(a-(g.d-1)/2)*g.sp;g.off.push(g.ax==='z'?[da+jx,fa+jz]:[fa+jx,da+jz])}
    if(g.along&&g.off!==undefined){}}
- dio.site={key,S,G,ground,water:B.water,groups,ev,smokes,TIMED,label:B.label||[0,0],np};
+ dio.site={key,S,G,ground,water:B.water,groups,ev,smokes,plumes,TIMED,label:B.label||[0,0],np};
  dio.key=key;
 }
 // Theodosian walls and other structures need side offsets; done in PROPS via perpendiculars.
@@ -383,6 +468,7 @@ const GROUND={
  farm:(i,j,c)=>{if(i%8===0||j%6===0)return['#55763a','#76583a'];return[['#7ea24a','#93b356','#cdb862','#6f9441','#a7b860','#b9a35a'][Math.floor(h2(Math.floor(i/8),Math.floor(j/6))*6)],'#76583a']},
  coastfarm:(i,j,c)=>c.near?['#e3d4a2','#cbb686']:(i%9===0||j%7===0)?['#4f7036','#76583a']:[['#76a046','#8bb052','#6c9440','#9cb85a'][Math.floor(h2(Math.floor(i/9),Math.floor(j/7))*4)],'#76583a'],
  city:(i,j,c)=>c.near?['#d9cba0','#bba98a']:['#a99f8e','#8b7e6c'],
+ marsh:(i,j,c)=>c.near?['#e1d3a3','#c9b686']:[['#6f8f4a','#7d9a52','#5f7f44','#9aa060','#86935a'][Math.floor(h2(Math.floor(i/4),Math.floor(j/3))*5)],'#6b5a3e'],
 };
 
 // ---------- structure helpers
@@ -414,6 +500,21 @@ function PROPS(B){const box=B.box,g=B.ground;return{
    if(i%7===0||j%6===0){box(x,y-.96,z,1,1,1,'#55575c');continue}
    if(h2(i,j)>.78)continue;const hh=(east?2+Math.floor(h2(j,i)*2.5):1+Math.floor(h2(j,i)*2.5))*.85;
    box(x,y,z,1,hh,1,east?['#a7a59d','#b5b2a8','#9c9a92'][Math.floor(h2(i+2,j)*3)]:['#d8c7a8','#c9b49a','#e0d5c0','#bfa98f','#cdb8a4'][Math.floor(h2(i+2,j)*5)]);box(x,y+hh,z,1,.2,1,east?'#7d7c77':'#7b4a3a')}},
+ town(cx,cz,rx,rz,st,avoid){const P={roman:['#efe6d2','#b5563a',.8,1.6],mud:['#c9a874','#b8956a',.6,1.1],paris:['#ddd2bc','#5f6470',.9,1.5],flemish:['#b9654a','#5a4a46',1,2]}[st];
+   for(let z=Math.floor(cz-rz);z<=cz+rz;z++)for(let x=Math.floor(cx-rx);x<=cx+rx;x++){const xx=x+.5,zz=z+.5;if(((xx-cx)/rx)**2+((zz-cz)/rz)**2>1)continue;if(xx<-56||xx>56||zz<-56||zz>56||B.water(xx,zz))continue;if(avoid&&avoid(xx,zz))continue;
+     if((x+400)%(st==='paris'?6:5)===0||(z+400)%(st==='paris'?5:4)===0)continue;if(h2(x,z)>(st==='paris'?.93:.78))continue;const y=g(xx,zz),hh=P[2]+h2(z,x)*(P[3]-P[2]);box(xx,y,zz,.95,hh,.95,P[0]);box(xx,y+hh,zz,1,.3,1,P[1])}},
+ villa(x,z){const y=g(x,z);box(x,y,z,2,1,1.6,'#efe6d2');box(x,y+1,z,2.2,.35,1.8,'#b5563a');for(let k=0;k<6;k++)box(x+(k%3)-1,y,z+2+Math.floor(k/3),.5,.6,.5,'#4f7136')},
+ pyramid(x,z,base,layers,t0,t1){const y0=g(x,z);for(let i=0;i<layers;i++){const sz=base*(1-i/layers)+.6,y=y0+i*.78,col=i%2?'#e6d6a8':'#dccb98';
+     const ta=i<3?0:t0+(i-3)/(layers-3)*(t1-t0);if(ta<=0)box(x,y,z,sz,.78,sz,col);else B.timed(ta,99,x,y,z,sz,.78,sz,col);
+     const rl=(layers-i)*1.5,rz=z+sz/2+rl/2;if(ta<=0)box(x,y,rz,2.2,.78,rl,'#b39869');else B.timed(ta,99,x,y,rz,2.2,.78,rl,'#b39869')}},
+ bastille(x,z){const ax=5.5,az=2.6,y=g(x,z);for(let dz=-az-2.5;dz<=az+2.5;dz+=1)for(let dx=-ax-2.5;dx<=ax+2.5;dx+=1){if(Math.abs(dx)<ax+1&&Math.abs(dz)<az+1)continue;box(x+dx,y-.9,z+dz,1,1,1,'#3f5f6a')}
+   const T=[[-ax,-az],[-1.8,-az],[1.8,-az],[ax,-az],[ax,az],[1.8,az],[-1.8,az],[-ax,az]];T.forEach(t=>{box(x+t[0],y,z+t[1],2.1,3.4,2.1,'#bdb3a0');box(x+t[0],y+3.4,z+t[1],2.3,.4,2.3,'#a59b88')});
+   const W=[[-ax,-az],[ax,-az],[ax,az],[-ax,az],[-ax,-az]];walkLine(W,.6,(px,pz)=>box(x+px,y,z+pz,.9,2.8,.9,'#c7bda9'));box(x-ax-2.5,y-.1,z,2.6,.3,1.2,'#7a5532');
+   return W.map(p=>[x+p[0],z+p[1]])},
+ farmstead(x,z){const y=g(x,z);walkLine([[x-3,z-3],[x+3,z-3],[x+3,z+3],[x-3,z+3],[x-3,z-3]],.7,(px,pz)=>box(px,g(px,pz),pz,.7,.9,.7,'#e2dccb'));
+   box(x-1.2,y,z-1.4,3,1.6,1.6,'#efe9da');box(x-1.2,y+1.6,z-1.4,3.2,.5,1.8,'#6d6f78');box(x+1.4,y,z+.8,1.6,1.4,2.6,'#efe9da');box(x+1.4,y+1.4,z+.8,1.8,.5,2.8,'#a9503a')},
+ launchPad(x,z){const y=g(x,z);box(x,y-.3,z,14,1,14,'#b7b4ac');box(x,y+.65,z,2.6,.08,11,'#3a3a3a');box(x+3.2,y+.7,z,1.6,17,1.6,'#c8452e');
+   for(let k=1;k<8;k++)box(x+2.2,y+.7+k*2,z,1.2,.25,.5,'#c8452e');box(x+3.2,y+17.7,z,4,.6,.8,'#c8452e');box(x-6,y+.7,z+5,1.6,3,1.6,'#d8d4cc');box(x-6,y+3.7,z+5,2.4,1.4,2.4,'#d8d4cc')},
  gate(x,z){const y=g(x,z);for(let c=0;c<6;c++)box(x,y,z-3+c*1.2,.7,3,.7,'#ddcfa6');box(x,y+3,z,1.6,1.3,7.6,'#d5c69c');box(x,y+4.3,z,.9,.8,1.6,'#3e6b55')},
  reichstag(x,z){const y=g(x,z);box(x,y,z,6,3,9,'#cdbf9e');for(const dz of[-4,4])for(const dx of[-2.6,2.6])box(x+dx,y,z+dz,1.4,3.8,1.4,'#c3b493')},
  berlinWall(W,gate){walkLine(W,.5,(x,z,s)=>{const near=Math.hypot(x-gate[0],z-gate[1])<4.5;const y=g(x,z);if(near)B.timed(0,11.5+h1(x*9+z)*1.5,x,y,z,.6,1.8,.6,'#e8e4d8');else box(x,y,z,.6,1.8,.6,'#e8e4d8');
@@ -424,67 +525,106 @@ function PROPS(B){const box=B.box,g=B.ground;return{
 // ---------- per-frame animation
 function pathAt(P,u){if(u<=P[0][0])return[P[0][1],P[0][2]];for(let k=1;k<P.length;k++)if(u<=P[k][0]){const a=P[k-1],b=P[k],f=ssf(0,1,(u-a[0])/(b[0]-a[0]));return[a[1]+(b[1]-a[1])*f,a[2]+(b[2]-a[2])*f]}const l=P[P.length-1];return[l[1],l[2]]}
 function colorFor(key,team,ui,g){if(team.crowd){if(key==='P')return['#2f3d5c','#1f1f24','#5a4a3a'][Math.floor(h1(ui*1.3)*3)];if(key==='R')return CROWD[Math.floor(h1(ui*2.7)*CROWD.length)];if(key==='Y')return['#3a2a1e','#e8c66a','#6b4a2e','#1e1e1e'][Math.floor(h1(ui*5.1)*4)]}
+ if(!team.crowd&&(key==='P'||key==='R'||key==='Y'))return key==='P'?(team.L||'#2f3d5c'):key==='R'?(team.K||'#c0392b'):(team.H||'#3a2a1e');
  if(key==='K'&&g.K)return g.K;if(g.gold&&(key==='K'||key==='T'))return'#e2b43c';return team[key]||FIXED[key]||'#ff00ff'}
 let nd=0;
 function dbox(x,y,z,sx,sy,sz,c,q){if(nd<14000)putBox(dyn,nd++,x,y,z,sx,sy,sz,c,q)}
-const PUFF={dust:['#ffd35a','#e8a050','#cdb788','#b8a27a'],earth:['#ffd35a','#f08a3a','#6f6458','#57514b'],stone:['#ffd35a','#f08a3a','#c9bea4','#a89f8a'],splash:['#ffffff','#e6f3ff','#d6ecfb','#c4e2f7'],firework:null};
-function updateDio(u){const st=dio.site,S=st.S;nd=0;
+const PUFF={ash:['#ff8a3a','#5c5652','#6b6560','#7d7670'],steam:['#ffffff','#f3f2ee','#e4e3df','#d6d5d0'],smoke:['#fff1c4','#eceae4','#dcdad4','#cbc9c3'],dust:['#ffd35a','#e8a050','#cdb788','#b8a27a'],earth:['#ffd35a','#f08a3a','#6f6458','#57514b'],stone:['#ffd35a','#f08a3a','#c9bea4','#a89f8a'],splash:['#ffffff','#e6f3ff','#d6ecfb','#c4e2f7'],firework:null};
+function updateDio(u){const st=dio.site,S=st.S;nd=0;st.followY=0;
  for(const g of st.groups){const team=S.teams[g.team],M=MOD[g.m];
-   const c0=g.path?pathAt(g.path,u):[0,0],c1=g.path?pathAt(g.path,u+.15):[0,0];const mv=Math.hypot(c1[0]-c0[0],c1[1]-c0[1]);
+   const uu=g.loop?((u+(g.phase||0))%g.loop):u;const c0=g.path?pathAt(g.path,uu):[0,0],c1=g.path?pathAt(g.path,uu+.15):[0,0];const mv=Math.hypot(c1[0]-c0[0],c1[1]-c0[1]);
    let yaw=g.face!==undefined?g.face:0;if(mv>.02)yaw=Math.atan2(-(c1[1]-c0[1]),c1[0]-c0[0]);
    _q.setFromAxisAngle(_Y,yaw);const cs=Math.cos(yaw),sn=Math.sin(yaw),us=(S.us||1)*(g.alt?1.4:g.m==='warship'?1:1);
    for(let ui=0;ui<g.N;ui++){const hv=h1(ui*1.618+g.N*.37+g.team);
      if(g.thin&&hv<g.thin[2]*ssf(g.thin[0],g.thin[1],u))continue;
      if(g.appear&&h1(ui*4.4+1.1)>ssf(g.appear[0],g.appear[1],u))continue;
-     let x,z;if(g.fixed){x=g.fixed[ui][0];z=g.fixed[ui][1]}else{x=c0[0]+g.off[ui][0];z=c0[1]+g.off[ui][1]}
+     const spr=g.spread?1+(g.spread[2]-1)*ssf(g.spread[0],g.spread[1],u):1;let x,z;if(g.fixed){x=g.fixed[ui][0];z=g.fixed[ui][1]}else{x=c0[0]+g.off[ui][0]*spr;z=c0[1]+g.off[ui][1]*spr}
      if(g.scatter&&g.path){x+=Math.sin(u*.8+ui)*.25;z+=Math.cos(u*.7+ui*1.3)*.25}
      if(x<-56||x>56||z<-56||z>56)continue;
-     let y;if(g.alt)y=g.alt+Math.sin(u*1.3+ui)*.4;else if(g.sea)y=.55;else{y=st.ground(x,z);if(g.onWall)y+=3.6*(S.title==='Brandenburg Gate'?.5:1)}
+     let y;if(g.altPath){const P=g.altPath;let k=1;while(k<P.length-1&&u>P[k][0])k++;const a=P[k-1],b=P[k];let f=Math.max(0,Math.min(1,(u-a[0])/(b[0]-a[0])));if(g.altEase&&k===P.length-1)f=f*f*f;y=a[1]+(b[1]-a[1])*f;st.followY=y-P[0][1]}else if(g.alt)y=g.alt+Math.sin(u*1.3+ui)*.4;else if(g.sea)y=.55;else{y=st.ground(x,z);if(g.onWall)y+=S.wallH||3.6}
      if(mv>.02&&!g.alt&&!g.sea&&(g.m==='soldier'||g.m==='pike'||g.m==='person'))y+=(Math.floor(u*8+ui)%2)*.06;
      for(const b of M.b){const ox=(b[0]*cs+b[2]*sn)*us,oz=(-b[0]*sn+b[2]*cs)*us;dbox(x+ox,y+b[1]*us,z+oz,b[3]*us,b[4]*us,b[5]*us,colorFor(b[6],team,ui,g),_q)}
+     if(g.exhaust!==undefined&&u>g.exhaust){const fl=Math.floor(u*24);for(let k=0;k<4;k++){const fs=(1.2-k*.2)*us;dbox(x+(h1(fl+k)-.5)*.3,y-(k+1)*.9*us,z+(h1(fl*3+k)-.5)*.3,fs,.9*us,fs,k<1?'#fffbe6':k<2?'#ffd35a':'#ff8a3a')}
+       const lift=y-g.altPath[0][1];for(let k=1;k<16;k++){const ty=y-3*us-k*2.6;if(ty<g.altPath[0][1]-1)break;const sz=(1+k*.35)*us*(.8+h1(k*7+Math.floor(u*4))*.4);dbox(x+(h1(k)-.5)*k*.2,ty,z+(h1(k+5)-.5)*k*.2,sz,sz,sz,k<3?'#ffe9b0':'#e6e4de')}}
+     if(g.burn){const fl=Math.floor(u*12+ui);for(let k=0;k<5;k++){const fs=(.6+h1(fl+k)*.6)*us;dbox(x+(h1(k+ui)-.5)*3*us,y+.9*us+k*.7*us,z+(h1(k*2+ui)-.5)*1.2*us,fs,fs,fs,k<2?'#ffd35a':k<4?'#ff8a3a':'#4a4440')}}
      if(g.fire&&M.mz){const w=u*g.fire+hv*7;if(w-Math.floor(w)<.09){const m=M.mz;dbox(x+(m[0]*cs+m[2]*sn)*us,y+m[1]*us-.2,z+(-m[0]*sn+m[2]*cs)*us,.55*us,.45*us,.55*us,'#ffe27a')}}
      else if(g.fire&&(g.m==='soldier')){const w=u*g.fire+hv*7;if(w-Math.floor(w)<.05)dbox(x+.5*cs*us,y+.4*us,z-.5*sn*us,.2*us,.2*us,.2*us,'#ffe27a')}}}
  // explosions
- for(const e of st.ev){const a=u-e.t;const dur=e.kind==='firework'?1.6:1.5;if(a<0||a>dur)continue;const r=mul32(e.seed|0);const cols=PUFF[e.kind];
+ const KD={firework:1.6,ash:3.2,steam:3.4,smoke:2.6};for(const e of st.ev){const a=u-e.t;const dur=KD[e.kind]||1.5;if(a<0||a>dur)continue;const r=mul32(e.seed|0);const cols=PUFF[e.kind];
    const fc=e.kind==='firework'?CROWD[Math.floor(e.seed)%CROWD.length]:null;
    for(let k=0;k<(e.kind==='firework'?14:9);k++){const dx=r()-.5,dy=r(),dz=r()-.5;
      if(e.kind==='firework'){const L=Math.hypot(dx,dy-.5,dz)||1,sp=a*4*e.s;dbox(e.x+dx/L*sp,e.y+(dy-.5)/L*sp-a*a*1.2,e.z+dz/L*sp,.35*(1-a/dur)+.05,.35*(1-a/dur)+.05,.35*(1-a/dur)+.05,a<.2?'#fffbe6':fc);continue}
      const sc=(a<.15?1.5:1.15*(1-a/dur))*e.s*(.5+r()*.6);const ci2=a<.12?0:a<.3?1:2+(k%2);
-     dbox(e.x+dx*(.6+a*2)*e.s,e.y+dy*.3+a*(e.kind==='splash'?1.2:2.4)*e.s*(.5+dy),e.z+dz*(.6+a*2)*e.s,sc,sc,sc,cols[ci2])}}
+     const spd=e.kind==='ash'||e.kind==='steam'?3.2:2;dbox(e.x+dx*(.6+a*spd)*e.s,e.y+dy*.3+a*(e.kind==='splash'?1.2:e.kind==='ash'?1.4:2.4)*e.s*(.5+dy),e.z+dz*(.6+a*spd)*e.s,sc,sc,sc,cols[ci2])}}
  // smoke columns
  for(const[sx,sz,t0]of st.smokes){if(u<t0)continue;const y0=st.ground(sx,sz);for(let k=0;k<7;k++){const a=((u-t0)*.35+k/7)%1;const s=.5+a*1.7;dbox(sx+Math.sin(k*2.1+u*.3)*a*1.5,y0+.5+a*11,sz+a*2,s*(1-a*.5),s*(1-a*.5),s*(1-a*.5),a<.15?'#4a4440':'#6b6764')}
    if(u-t0<99)dbox(sx,y0,sz,.7,.5,.7,(Math.floor(u*10)%2)?'#ff9a3a':'#ffd35a')}
+ // eruption column: rises, then spreads into an umbrella cloud
+ for(const[px,pz,t0,ph]of st.plumes||[]){if(u<t0-1.5){continue}const y0=st.ground(px,pz);const grow=ssf(t0,t0+3.5,u);
+   dbox(px,y0-.2,pz,3,.8+Math.sin(u*9)*.2,3,u<t0?'#ff9a3a':'#ffb347');
+   if(u<t0){for(let k=0;k<3;k++){const a=((u*.3)+k/3)%1;dbox(px,y0+a*6,pz,1+a,1+a,1+a,'#8a857e')}continue}
+   for(let k=0;k<44;k++){const a=((u-t0)*.18+k/44)%1,top=ph*grow,yy=y0+a*top;const um=a>.72?(a-.72)/.28:0;const sp=1.5+a*5+um*um*ph*.55;const ang=k*2.399;
+     const sz=(2.4+a*6+um*5)*(.75+h1(k)*.5);dbox(px+Math.cos(ang)*sp,yy,pz+Math.sin(ang)*sp,sz,sz*.8,sz,a<.06?'#ff8a3a':['#4f4a46','#5f5954','#6e6862','#7c766f'][k%4])}}
  // structures that appear or disappear on cue (trenches dug, Wall pulled down)
  for(const t of st.TIMED)if(u>=t[0]&&u<t[1])dbox(t[2],t[3],t[4],t[5],t[6],t[7],t[8]);
  dyn.count=nd;dyn.instanceMatrix.needsUpdate=true;if(dyn.instanceColor)dyn.instanceColor.needsUpdate=true;
  props.instanceMatrix.needsUpdate=tTop.instanceMatrix.needsUpdate=tBody.instanceMatrix.needsUpdate=dio.dirty;if(dio.dirty){props.instanceColor.needsUpdate=tTop.instanceColor.needsUpdate=tBody.instanceColor.needsUpdate=true;dio.dirty=false}
  // camera: slow orbit and push-in, framed per site
  const k=u/S.dur,yaw=S.yaw+(k-.5)*.3,pit=S.pitch-.05*k,dist=S.dist*(1.08-.14*k)*Math.max(1,1.25/dio.cam.aspect);
- const t=S.target;dio.cam.position.set(t[0]+Math.sin(yaw)*Math.cos(pit)*dist,t[1]+Math.sin(pit)*dist,t[2]+Math.cos(yaw)*Math.cos(pit)*dist);dio.cam.lookAt(t[0],t[1],t[2]);
+ const t=[S.target[0],S.target[1]+(S.follow&&st.followY?st.followY*.85:0),S.target[2]];const dist2=S.follow&&st.followY?dist+st.followY*.25:dist;dio.cam.position.set(t[0]+Math.sin(yaw)*Math.cos(pit)*dist2,t[1]+Math.sin(pit)*dist2,t[2]+Math.cos(yaw)*Math.cos(pit)*dist2);dio.cam.lookAt(t[0],t[1],t[2]);
 }
 function ensureSite(key){if(dio.key!==key){buildSite(key);dio.dirty=true}}
 
 // ---------------- the tour: [year, lat, lon, caption, battlefield?]
+const C=(n,la,lo)=>[n,la,lo,1];  // country tag; plain [name,lat,lon] is a city tag
 const TOUR=[
- [-3000,30,38,"c. 3000 BCE. Cities and kingdoms rise along the Nile and in Mesopotamia."],
- [-2300,32,44,"Sargon of Akkad unites Mesopotamia into one of history's first empires."],
- [-1500,31,34,"Egypt's New Kingdom and the Hittites compete for the Near East."],
- [-1000,34,110,"In China, the Zhou dynasty claims the Mandate of Heaven."],
- [-500,32,55,"Persia's Achaemenid Empire stretches from Egypt to the Indus."],
- [-331,36.57,43.43,"Alexander the Great marches on the heart of the Persian Empire.","gaugamela"],
- [-250,24,80,"Under Ashoka, the Maurya Empire spans most of South Asia."],
- [-200,34,108,"The Qin, then the Han, forge a unified China."],
- [117,40,18,"Under Trajan, the Roman Empire reaches its greatest extent."],
- [476,43,20,"The Western Roman Empire falls. Byzantium endures in the east."],
- [750,30,30,"The Islamic caliphates reach from Spain to Central Asia."],
- [1100,30,112,"Song China leads the world in cities, printing and trade."],
- [1279,45,90,"The Mongol Empire becomes the largest contiguous land empire ever."],
- [1453,41.02,28.95,"The Ottoman Turks close in on the last Roman city.","constantinople"],
- [1550,5,-70,"Europeans reach the Americas. The Aztec and Inca empires fall within decades."],
- [1650,28,75,"The Ottomans, Safavids, Mughals and Qing dominate Asia."],
- [1800,40,-30,"Revolutions in America and France reshape the idea of the nation."],
- [1900,5,20,"European colonial powers carve up nearly all of Africa."],
- [1914,48.96,3.05,"World War I begins, and the war that will shatter four empires.","marne"],
+ // 1 First Empires
+ [-3000,30,38,"Cities and kingdoms rise along the Nile and in Mesopotamia.",null,{date:'c. 3000 BCE',dist:320,labels:[C('EGYPT',26.5,31),C('SUMER',31.5,46),['Memphis',29.84,31.25],['Uruk',31.32,45.64]]}],
+ [-2560,29.98,31.13,"Egypt's Old Kingdom builds monuments on a scale the world has never seen.","giza",{date:'c. 2560 BCE',dist:270,labels:[C('EGYPT',26.5,31),['Giza',29.98,31.13]]}],
+ [-2300,32,44,"Sargon of Akkad unites Mesopotamia into one of history's first empires.",null,{date:'c. 2300 BCE',dist:290,labels:[C('AKKAD',33.6,42.6),['Kish',32.54,44.6],['Ur',30.96,46.1]]}],
+ [-1750,32.5,44.4,"Hammurabi of Babylon issues one of the oldest surviving law codes.",null,{date:'c. 1750 BCE',dist:290,labels:[C('BABYLONIA',31.4,45.8),['Babylon',32.54,44.42],['Mari',34.55,40.89]]}],
+ [-1274,33,35,"Egypt and the Hittites clash at Kadesh, then sign one of the first known peace treaties.",null,{date:'1274 BCE',dist:300,labels:[C('EGYPT',26.5,31),C('HITTITES',39.5,34),['Kadesh',34.56,36.52],['Thebes',25.72,32.6]]}],
+ [-1000,34,110,"In China, the Zhou dynasty claims the Mandate of Heaven.",null,{date:'c. 1000 BCE',dist:300,labels:[C('ZHOU',35.4,112),['Haojing',34.23,108.85]]}],
+ // 2 The Classical World
+ [-500,32,50,"Persia's Achaemenid Empire stretches from Egypt to the Indus.",null,{date:'c. 500 BCE',dist:340,labels:[C('PERSIA',32,55),['Persepolis',29.93,52.89],['Susa',32.19,48.26],['Sardis',38.48,28.04]]}],
+ [-480,38.5,24,"Persia invades Greece. At Salamis the Greek fleet destroys the Persian navy.",null,{date:'480 BCE',dist:240,labels:[C('GREECE',39.4,21.6),['Athens',37.98,23.73],['Sparta',37.07,22.43],['Salamis',37.6,23.2]]}],
+ [-331,36.57,43.43,"Alexander the Great marches on the heart of the Persian Empire.","gaugamela",{date:'331 BCE',dist:300,labels:[C('MACEDON',40.8,22),['Babylon',32.54,44.42],['Gaugamela',36.57,43.43]]}],
+ [-250,24,80,"Under Ashoka, the Maurya Empire spans most of South Asia.",null,{date:'c. 250 BCE',dist:330,labels:[C('MAURYA EMPIRE',22.5,79),['Pataliputra',25.6,85.14]]}],
+ [-221,34,108,"Qin Shi Huang unifies China and becomes its first emperor.",null,{date:'221 BCE',dist:310,labels:[C('QIN',35,111),['Xianyang',34.33,108.7]]}],
+ [-218,41,10,"Hannibal of Carthage crosses the Alps with war elephants to invade Italy.",null,{date:'218 BCE',dist:270,labels:[C('ROME',42.6,13),C('CARTHAGE',34.8,9.3),['The Alps',45.9,7.4],['Rome',41.9,12.5]]}],
+ [-44,41.9,12.5,"Julius Caesar is assassinated. The Roman Republic gives way to an empire.",null,{date:'44 BCE',dist:280,labels:[C('GAUL',47,2.5),C('EGYPT',26.5,31),['Rome',41.9,12.5]]}],
+ // 3 Rome and Han
+ [79,40.8,14.43,"Mount Vesuvius erupts above the Bay of Naples.","pompeii",{date:'79 CE',dist:250,labels:[['Rome',41.9,12.5],['Pompeii',40.75,14.49]]}],
+ [117,40,18,"Under Trajan, the Roman Empire reaches its greatest extent.",null,{date:'117 CE',dist:340,labels:[C('ROMAN EMPIRE',43,22),['Rome',41.9,12.5],['Londinium',51.51,-.12],['Alexandria',31.2,29.92]]}],
+ [220,33,112,"The Han dynasty collapses and China splits into the Three Kingdoms.",null,{date:'220 CE',dist:320,labels:[C('WEI',36.5,114),C('SHU',30.5,104),C('WU',28.8,118),['Luoyang',34.62,112.45]]}],
+ [330,41,29,"Constantine makes Constantinople the new capital of the Roman Empire.",null,{date:'330 CE',dist:280,labels:[['Constantinople',41.01,28.98],['Rome',41.9,12.5]]}],
+ [476,43,20,"The Western Roman Empire falls. Byzantium endures in the east.",null,{date:'476 CE',dist:330,labels:[['Ravenna',44.42,12.2],['Constantinople',41.01,28.98]]}],
+ // 4 Faith and Conquest
+ [632,24,42,"Islam spreads from Arabia. Within a century its caliphate reaches from Spain to the Indus.",null,{date:'632 CE',dist:330,labels:[C('ARABIA',23,46),['Mecca',21.42,39.83],['Medina',24.47,39.61]]}],
+ [750,30,30,"The Abbasids take power, and Baghdad becomes one of the world's great cities.",null,{date:'750 CE',dist:350,labels:[['Baghdad',33.31,44.37],['Córdoba',37.88,-4.78],['Damascus',33.51,36.29]]}],
+ [800,48,8,"Charlemagne is crowned emperor in Rome, uniting much of Western Europe.",null,{date:'800 CE',dist:290,labels:[C('FRANKISH EMPIRE',47.4,4.4),['Aachen',50.78,6.08],['Rome',41.9,12.5]]}],
+ [1066,50.91,.49,"Normans from France set out to conquer England.","hastings",{date:'1066',dist:270,labels:[C('ENGLAND',52.6,-1.6),C('NORMANDY',48.8,-.4),['London',51.51,-.13]]}],
+ [1099,31.78,35.22,"European crusaders capture Jerusalem.",null,{date:'1099',dist:290,labels:[['Jerusalem',31.78,35.22],['Constantinople',41.01,28.98],['Cairo',30.04,31.24]]}],
+ [1100,30,112,"Song China leads the world in cities, printing and trade.",null,{date:'c. 1100',dist:330,labels:[C('SONG',28.5,114),['Kaifeng',34.8,114.3]]}],
+ [1279,45,90,"The Mongol Empire becomes the largest contiguous land empire ever.",null,{date:'1279',dist:400}],
+ [1347,45,18,"The Black Death sweeps across Europe, killing perhaps a third of its people.",null,{date:'1347',dist:310,labels:[['Caffa',45.03,35.38],['Venice',45.44,12.33],['Paris',48.86,2.35],['London',51.51,-.13]]}],
+ // 5 Gunpowder and Sail
+ [1453,41.02,28.95,"The Ottoman Turks close in on the last Roman city.","constantinople",{date:'1453',dist:280,labels:[C('OTTOMANS',39,32.5),['Constantinople',41.01,28.98]]}],
+ [1492,22,-72,"Christopher Columbus reaches the Caribbean.",null,{date:'OCT 1492',dist:320,labels:[['Guanahani',24.05,-74.5],['Hispaniola',19,-71],['Cuba',21.6,-79]]}],
+ [1521,19.43,-99.13,"Hernán Cortés and his Indigenous allies conquer the Aztec capital, Tenochtitlan.",null,{date:'1521',dist:300,labels:[['Tenochtitlan',19.43,-99.13]]}],
+ [1533,-12,-74,"Francisco Pizarro conquers the Inca Empire.",null,{date:'1533',dist:320,labels:[['Cusco',-13.53,-71.97],['Cajamarca',-7.16,-78.51]]}],
+ [1588,51,1,"Spain sends a great Armada to invade England.","armada",{date:'1588',dist:280,labels:[C('ENGLAND',52.6,-1.6),C('SPAIN',40,-3.7),['London',51.51,-.13],['Calais',50.95,1.86]]}],
+ [1650,28,75,"The Ottomans, Safavids, Mughals and Qing dominate Asia.",null,{date:'c. 1650',dist:390}],
+ // 6 Revolutions and Empires
+ [1776,39.5,-75,"Thirteen American colonies declare independence from Britain.",null,{date:'JUL 1776',dist:300,labels:[['Philadelphia',39.95,-75.17],['Boston',42.36,-71.06],['New York',40.71,-74]]}],
+ [1789,48.85,2.37,"Revolution breaks out in France.","bastille",{date:'1789',dist:270,labels:[C('FRANCE',46.6,2.5),['Paris',48.86,2.35]]}],
+ [1815,50.68,4.41,"Napoleon conquers much of Europe, then makes his last stand in Belgium.","waterloo",{date:'1815',dist:290,labels:[C('FRANCE',46.6,2.5),['Brussels',50.85,4.35],['Paris',48.86,2.35]]}],
+ [1869,30.6,32.3,"The Suez Canal opens, linking the Mediterranean to the Red Sea.",null,{date:'NOV 1869',dist:280,labels:[['Port Said',31.26,32.3],['Suez',29.97,32.55],['Cairo',30.04,31.24]]}],
+ [1900,5,20,"European colonial powers carve up nearly all of Africa.",null,{date:'1884–1914',dist:370}],
+ // 7 The World Wars
+ [1914,48.96,3.05,"World War I begins. German armies sweep through Belgium toward Paris.","marne",{date:'AUG 1914',dist:290,labels:[C('FRANCE',46.6,2.5),C('GERMANY',51,10.5),['Paris',48.86,2.35]]}],
+ [1917,57,36,"Revolution in Russia: the Bolsheviks seize power.",null,{date:'NOV 1917',dist:330,labels:[C('RUSSIA',57,46),['Petrograd',59.94,30.31],['Moscow',55.75,37.62]]}],
+ [1918,49.5,6,"On 11 November 1918 the guns fall silent. The German, Austro-Hungarian, Russian and Ottoman empires are gone or collapsing.",null,{date:'NOV 1918',dist:320,labels:[C('FRANCE',46.6,2.5),C('GERMANY',51,10.5),['Paris',48.86,2.35]]}],
  [1939,51,16,"Germany invades Poland. World War II begins in Europe.",null,{date:'SEP 1939',dist:300,labels:[['GERMANY',50.2,9.6,1],['POLAND',52.3,19.5,1],['FRANCE',46.6,2.5,1],['BRITAIN',53,-1.6,1],['SOVIET UNION',56,36,1],['Warsaw',52.23,21.01],['Paris',48.86,2.35],['London',51.51,-.13],['Moscow',55.75,37.62]]}],
  [1940,47,4,"In six weeks France falls. Germany occupies the north, and a collaborationist regime rules from Vichy.",null,{date:'JUN 1940',dist:280,labels:[['GERMANY',50.2,9.6,1],['VICHY FRANCE',45.3,2.8,1],['BRITAIN',53,-1.6,1],['SPAIN',40,-3.7,1],['Paris',48.86,2.35],['Vichy',46.13,3.43],['London',51.51,-.13],['Madrid',40.42,-3.7]]}],
  [1941,53,32,"Germany invades the Soviet Union with more than three million troops.",null,{date:'JUN 1941',dist:320,labels:[['SOVIET UNION',57,42,1],['GERMANY',50.2,9.6,1],['Moscow',55.75,37.62],['Leningrad',59.94,30.31],['Kyiv',50.45,30.52]]}],
@@ -493,34 +633,49 @@ const TOUR=[
  [1942,37,3,"On 8 November, in Operation Torch, American and British troops land in Morocco and Algeria.",null,{date:'NOV 1942',dist:250,labels:[['SPAIN',40,-3.7,1],['FRENCH NORTH AFRICA',31,1,1],['ITALY',43,12,1],['Lisbon',38.72,-9.14],['Rome',41.9,12.5],['Algiers',36.75,3.06],['Casablanca',33.57,-7.59],['Gibraltar',36.14,-5.35]]}],
  [1943,49,44,"At Stalingrad the German Sixth Army surrenders. The tide turns in the east.",null,{date:'FEB 1943',dist:300,labels:[['SOVIET UNION',56,48,1],['Stalingrad',48.71,44.51],['Moscow',55.75,37.62],['Rostov',47.24,39.71]]}],
  [1944,49.36,-0.86,"The Allies open a second front in Western Europe.","normandy",{date:'JUN 1944',dist:280,labels:[['FRANCE',46.6,2.5,1],['BRITAIN',53,-1.6,1],['GERMANY',50.2,9.6,1],['London',51.51,-.13],['Paris',48.86,2.35]]}],
- [1945,45,25,"From the ruins rise the United Nations and two rival superpowers."],
- [1960,8,25,"Decolonization: dozens of new nations across Africa and Asia."],
- [1989,52.52,13.38,"Revolutions sweep across Eastern Europe.","berlin"],
- [1991,55,60,"The Soviet Union dissolves into fifteen independent states."],
+ [1945,45,25,"Germany surrenders in May and Japan in September. From the ruins rise the United Nations and two superpowers.",null,{date:'1945',dist:340}],
+ // 8 The Modern World
+ [1947,25,74,"India and Pakistan win independence from Britain.",null,{date:'AUG 1947',dist:310,labels:[C('INDIA',21,78.5),C('PAKISTAN',29.5,68.5),['Delhi',28.61,77.21],['Karachi',24.86,67]]}],
+ [1949,36,112,"Mao Zedong proclaims the People's Republic of China.",null,{date:'OCT 1949',dist:330,labels:[['Beijing',39.9,116.4]]}],
+ [1960,8,25,"Decolonization: dozens of new nations across Africa and Asia.",null,{date:'1960',dist:370}],
+ [1962,24,-80,"The Cuban Missile Crisis brings the world to the edge of nuclear war.",null,{date:'OCT 1962',dist:300,labels:[C('CUBA',21.6,-78.6),['Havana',23.11,-82.37],['Washington',38.9,-77.04],['Miami',25.76,-80.19]]}],
+ [1969,28.6,-80.6,"The United States and the Soviet Union race to the Moon.","apollo",{date:'1969',dist:300,labels:[['Cape Kennedy',28.49,-80.58],['Houston',29.76,-95.37]]}],
+ [1989,52.52,13.38,"Revolutions sweep across Eastern Europe.","berlin",{date:'NOV 1989',dist:290,labels:[['Warsaw',52.23,21.01],['Prague',50.08,14.44]]}],
+ [1991,55,60,"The Soviet Union dissolves into fifteen independent states.",null,{date:'DEC 1991',dist:390,labels:[['Moscow',55.75,37.62]]}],
  [2024,40,-100,"Today: about two hundred states share one small, blocky world."]];
-const HOLD=4.2,MOVE=3.0,DIVE=1.8,RISE=1.8;
+// chapters
+const CHAP=[[-1e9,'First Empires'],[-600,'The Classical World'],[1,'Rome and Han'],[500,'Faith and Conquest'],[1450,'Gunpowder and Sail'],[1770,'Revolutions and Empires'],[1914,'The World Wars'],[1946,'The Modern World']];
+const chapOf=y=>{let c=0;CHAP.forEach((x,k)=>{if(y>=x[0])c=k});return c};
+const HOLD=4.4,MOVE=3.0,DIVE=1.8,RISE=1.8,CARD=3.2,INTRO=5;
 const SEGS=[];let ACC=0;const pushSeg=o=>{o.t0=ACC;ACC+=o.d;SEGS.push(o)};
-TOUR.forEach((s,i)=>{if(i>0)pushSeg({k:'move',i,d:MOVE});pushSeg({k:'hold',i,d:HOLD});if(s[4]){pushSeg({k:'dive',i,d:DIVE});pushSeg({k:'dio',i,d:SITES[s[4]].dur});pushSeg({k:'rise',i,d:RISE})}});
+pushSeg({k:'intro',i:0,d:INTRO});
+TOUR.forEach((s,i)=>{const c=chapOf(s[0]);if(i===0||c!==chapOf(TOUR[i-1][0]))pushSeg({k:'card',i,c,d:CARD});
+  if(i>0)pushSeg({k:'move',i,d:MOVE});pushSeg({k:'hold',i,d:HOLD});if(s[4]){pushSeg({k:'dive',i,d:DIVE});pushSeg({k:'dio',i,d:SITES[s[4]].dur});pushSeg({k:'rise',i,d:RISE})}});
 const TOTAL=ACC+4;
+const yrTxt=y=>y<0?`${-y} BCE`:`${y} CE`;
+const chapYears=CHAP.map((c,k)=>{const ys=TOUR.filter(t=>chapOf(t[0])===k).map(t=>t[0]);return ys.length?`${yrTxt(Math.min(...ys))} – ${yrTxt(Math.max(...ys))}`:''});
 function tourAt(t){let j=0;for(let q=0;q<SEGS.length;q++)if(SEGS[q].t0<=t)j=q;const sg=SEGS[j],u=Math.min(t-sg.t0,sg.d),b=TOUR[sg.i];
-  const dOf=x=>(x[5]&&x[5].dist)||camDist;const base={i:sg.i,seg:sg,year:b[0],lat:b[1],lon:b[2],ci:sg.i,cu:99,mode:'globe',f:0,dist:dOf(b)};
+  const dOf=x=>(x[5]&&x[5].dist)||camDist;
+  const base={i:sg.i,seg:sg,year:b[0],lat:b[1],lon:b[2],ci:sg.i,cu:99,mode:'globe',f:0,dist:dOf(b)};
+  if(sg.k==='intro')return{...base,mode:'intro',cu:-99};
+  if(sg.k==='card'){const p=sg.i>0?TOUR[sg.i-1]:b;return{...base,ci:Math.max(0,sg.i-1),cu:sg.i>0?99:-99,year:p[0],lat:p[1],lon:p[2],dist:dOf(p),mode:'card',u,c:sg.c}}
   if(sg.k==='move'){const a=TOUR[sg.i-1];let f=u/MOVE;f=f<.5?2*f*f:1-Math.pow(-2*f+2,2)/2;let dl=b[2]-a[2];if(dl>180)dl-=360;if(dl<-180)dl+=360;
     return{...base,ci:sg.i-1,year:a[0]+(b[0]-a[0])*f,lat:a[1]+(b[1]-a[1])*f,lon:a[2]+dl*f,dist:dOf(a)+(dOf(b)-dOf(a))*f}}
   if(sg.k==='hold')return{...base,cu:u};
   if(sg.k==='dive')return{...base,mode:'dive',f:u/DIVE};
   if(sg.k==='rise')return{...base,mode:'rise',f:u/RISE};
   return{...base,mode:'dio',site:b[4],u}}
-// chapters (shown in the progress bar)
-const CHAP=[[-1e9,'First Empires'],[-600,'The Classical World'],[500,'Faith and Conquest'],[1450,'Gunpowder and Sail'],[1780,'Revolutions and Empires'],[1914,'The World Wars'],[1946,'The Modern World']];
-const chapOf=y=>{let c=0;CHAP.forEach((x,k)=>{if(y>=x[0])c=k});return c};
 const chapSpan=CHAP.map(()=>[1e9,-1e9]);SEGS.forEach(sg=>{const c=chapOf(TOUR[sg.i][0]);chapSpan[c][0]=Math.min(chapSpan[c][0],sg.t0);chapSpan[c][1]=Math.max(chapSpan[c][1],sg.t0+sg.d)});
-chapSpan[chapSpan.length-1][1]=TOTAL;
+chapSpan[0][0]=0;chapSpan[chapSpan.length-1][1]=TOTAL;
 const chapEl=document.getElementById('chapbar');
 chapEl.innerHTML='<div class="row"><span id="chapname"></span><span id="chapleft"></span></div><div class="track">'+chapSpan.map(([a,b])=>`<i style="flex:${b-a}"><b></b></i>`).join('')+'</div>';
 const chapFills=[...chapEl.querySelectorAll('.track b')];
-function updChap(){const c=chapOf(TOUR[tourAt(Math.min(T,TOTAL-.01)).i][0]);document.getElementById('chapname').textContent=`Chapter ${c+1} of ${CHAP.length} · ${CHAP[c][1]}`;
+const cardEl=document.createElement('div');cardEl.id='card';document.body.appendChild(cardEl);
+function updChap(s){const c=s.mode==='card'?s.c:chapOf(TOUR[s.i][0]);document.getElementById('chapname').textContent=`Chapter ${c+1} of ${CHAP.length} · ${CHAP[c][1]}`;
   const left=Math.max(0,TOTAL-T);document.getElementById('chapleft').textContent=`${Math.floor(left/60)}:${String(Math.floor(left%60)).padStart(2,'0')} left`;
-  chapFills.forEach((b,k)=>{const[a,e]=chapSpan[k];b.style.width=Math.max(0,Math.min(1,(T-a)/(e-a)))*100+'%'})}
+  chapFills.forEach((b,k)=>{const[a,e]=chapSpan[k];b.style.width=Math.max(0,Math.min(1,(T-a)/(e-a)))*100+'%'});
+  if(s.mode==='card'){if(cardEl._c!==s.c){cardEl._c=s.c;cardEl.innerHTML=`<div class="n">CHAPTER ${s.c+1} OF ${CHAP.length}</div><div class="t">${CHAP[s.c][1].toUpperCase()}</div><div class="y">${chapYears[s.c]}</div>`}
+    cardEl.style.opacity=Math.min(1,s.u/.4,(CARD-s.u)/.4)}else cardEl.style.opacity=0}
 
 // ---------------- UI
 const yEl=document.getElementById('year'),eraEl=document.getElementById('era'),capEl=document.getElementById('cap'),credEl=document.getElementById('credits');
@@ -536,7 +691,9 @@ const capOf=x=>x[5]&&x[5].date?[x[5].date,x[3]]:x[3];
 const capHtml=x=>x[5]&&x[5].date?`<em>[${esc(x[5].date)}]</em> ${esc(x[3])}`:esc(x[3]);
 function updCaption(i,u){setCap(i>0?capHtml(TOUR[i-1]):'',capOf(TOUR[i]),u)}
 const LEGEND=[['Allies','#a9c4ff'],['Axis','#d63a2f'],['Vichy France','#c9ad78'],['Neutral','#6c9b3b']];
-function theaterBox(date){if(dateEl._k===date)return;dateEl._k=date;dateEl.innerHTML=`<div class="d">${esc(date)}</div>`+LEGEND.map(t=>`<div class="lg"><i style="background:${t[1]}"></i>${t[0]}</div>`).join('')}
+function theaterBox(date,war,k,lat,lon){const key=date+k+war;if(dateEl._k===key)return;dateEl._k=key;let items=LEGEND;
+  if(!war){const f=llVec(lat,lon,1),L=(D.labels[YEARS[k]]||[]).filter(l=>l[1]*f.x+l[2]*f.y+l[3]*f.z>.82&&l[4]>=8).slice(0,4);items=L.map(l=>[D.names[l[0]],D.colors[l[0]]])}
+  dateEl.innerHTML=`<div class="d">${esc(date)}</div>`+items.map(t=>`<div class="lg"><i style="background:${t[1]}"></i>${esc(t[0])}</div>`).join('')}
 // theater labels: countries and cities from latitude/longitude
 const tEl=document.createElement('div');tEl.id='tlabels';document.body.appendChild(tEl);let tKey=null,tPool=[];
 const llVec=(la,lo,r)=>{const p=(90-la)*Math.PI/180,l=lo*Math.PI/180;return new THREE.Vector3(Math.sin(p)*Math.cos(l)*r,Math.cos(p)*r,-Math.sin(p)*Math.sin(l)*r)};
@@ -549,7 +706,7 @@ function theaterLabels(list,key){if(tKey!==key){tKey=key;tEl.innerHTML='';tPool=
 function dioCaption(S,u){let c=0;S.caps.forEach((x,k)=>{if(u>=x[0])c=k});const cur=S.caps[c],prev=c>0?S.caps[c-1]:null;
   setCap(prev?`<em>[${esc(prev[1])}]</em> ${esc(prev[2])}`:'',[cur[1],cur[2]],u-cur[0]);
   const key=S.title+c;if(dateEl._k!==key){dateEl._k=key;
-    dateEl.innerHTML=`<div class="d">${esc(cur[1].replace(/^\d+ /,''))}</div>`+S.teams.map(t=>`<div class="lg"><i style="background:${t.T}"></i>${esc(t.name)}</div>`).join('')+(S.legendExtra||[]).map(t=>`<div class="lg"><i style="background:${t[1]}"></i>${esc(t[0])}</div>`).join('')}}
+    dateEl.innerHTML=`<div class="d">${esc(cur[1].replace(/^\d{1,2} (?=[A-Z]{3} )/,''))}</div>`+S.teams.map(t=>`<div class="lg"><i style="background:${t.T}"></i>${esc(t.name)}</div>`).join('')+(S.legendExtra||[]).map(t=>`<div class="lg"><i style="background:${t[1]}"></i>${esc(t[0])}</div>`).join('')}}
 
 // interaction: drag to look around, wheel to zoom
 let drag=null,userYaw=0,userPitch=0,idle=99;
@@ -570,8 +727,8 @@ function render(now,dtOverride){const dt=dtOverride??Math.min(.1,(now-prev)/1000
   if(playing){T+=dt;if(T>TOTAL)T=0}idle+=dt;scrub.value=T/TOTAL*1000;
   const s=tourAt(Math.min(T,TOTAL-.001));
   document.body.classList.toggle('indio',s.mode==='dio');
-  updChap();
-  credEl.style.transition=still?'none':'';credEl.style.opacity=(T<6||T>TOTAL-4)?1:0;
+  updChap(s);
+  credEl.style.transition=still?'none':'';credEl.style.opacity=(s.mode==='intro'||T>TOTAL-4)?1:0;
   if(s.mode==='dio'){const S=SITES[s.site];ensureSite(s.site);updateDio(s.u);
     fadeEl.style.opacity=Math.max(1-s.u/.45,ssf(S.dur-.45,S.dur,s.u));
     dioCaption(S,s.u);labEl.style.opacity=0;
@@ -580,10 +737,10 @@ function render(now,dtOverride){const dt=dtOverride??Math.min(.1,(now-prev)/1000
     tEl.style.opacity=0;placeEl.textContent=S.title;placeEl.style.left=(PV.x*.5+.5)*innerWidth+'px';placeEl.style.top=(-PV.y*.5+.5)*innerHeight+'px';
     return}
   // globe modes
-  const opt=TOUR[s.ci][5],th=s.mode==='globe'&&opt&&opt.date;document.body.classList.toggle('theater',!!th);if(th)theaterBox(opt.date);
-  labEl.style.opacity=s.mode==='globe'&&!(opt&&opt.labels)?1:0;tEl.style.opacity=s.mode==='globe'&&opt&&opt.labels?1:0;
   let k=0;for(let j=0;j<YEARS.length;j++)if(YEARS[j]<=s.year+1e-6)k=j;
   const al=s.year>=1938.99&&s.year<=1945.01;setKey(k,still,al);stepRecolor();if(still)while(pend)stepRecolor();
+  const opt=TOUR[s.ci][5],th=(s.mode==='globe')&&s.cu>-50&&opt&&opt.date;document.body.classList.toggle('theater',!!th);if(th)theaterBox(opt.date,al,k,TOUR[s.ci][1],TOUR[s.ci][2]);
+  labEl.style.opacity=s.mode==='globe'&&!(opt&&opt.labels)?1:0;tEl.style.opacity=s.mode==='globe'&&opt&&opt.labels?1:0;
   if(k!==lastLabK){updLabels(k);lastLabK=k}
   if(idle>4||s.mode!=='globe'){userYaw*=.9;userPitch*=.9}
   // dive/rise: zoom straight onto the battlefield, fading through the night-blue background
@@ -596,7 +753,7 @@ function render(now,dtOverride){const dt=dtOverride??Math.min(.1,(now-prev)/1000
   const targetZ=s.dist+(122-s.dist)*z;camera.position.z=s.mode==='globe'&&!still?camera.position.z+(targetZ-camera.position.z)*.1:targetZ;
   fadeEl.style.opacity=s.mode==='dive'?ssf(.55,1,s.f):s.mode==='rise'?1-ssf(0,.45,s.f):0;
   yEl.textContent=fmtY(s.year);eraEl.textContent=eraName(s.year).toUpperCase();
-  if(s.mode==='globe')updCaption(s.ci,s.cu);else updCaption(s.i,99);
+  if(s.mode==='intro')capEl.innerHTML='';else if(s.mode==='globe'||s.mode==='card')updCaption(s.ci,s.cu);else updCaption(s.i,99);
   renderer.render(scene,camera);placeLabels();theaterLabels(opt&&opt.labels,s.ci)}
 document.getElementById('load').remove();
 window.__seek=t=>{T=t;render(performance.now(),0);render(performance.now(),0)};window.__total=TOTAL;window.__ready=true;

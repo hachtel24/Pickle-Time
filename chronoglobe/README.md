@@ -18,19 +18,22 @@ Alliance membership changes by year (`ALLY` in `build/template.html`): for
 example the USSR joins the Allies in 1941, the US in 1942 (after Pearl Harbor),
 and Vichy French Africa and Italy switch sides in 1943-44.
 
-## Battlefield zoom-ins
-At six key moments the camera dives from the globe into a voxel diorama built on
-that spot's real terrain (AWS Terrain Tiles at zoom 10-12), with scripted armies,
-a date box and legend, a location tag and dated captions:
+## Structure: 8 chapters, 50 stops, 13 zoom-ins (about 12 minutes)
+Each chapter opens with a title card, and the red bar along the bottom is split by
+chapter. Every stop is a dated theater view: the camera pulls in on the region, with
+country and city tags and a legend. The legend lists alliances during WWII and the
+largest real Cliopatria polities near the focus in every other era.
 
-| Year | Battlefield | What happens |
-|---|---|---|
-| 331 BCE | Gaugamela | Phalanx and Persian line, scythed chariots, Alexander's cavalry charge, Darius flees |
-| 1453 | Constantinople | Bombards against the Theodosian walls (with outer wall and moat), the breach, Hagia Sophia, Galata Tower, ships in the Golden Horn |
-| 1914 | River Marne | Real Marne valley, Paris taxis bringing troops, German advance and retreat, trenches dug |
-| 1942 | El Alamein | Real coastline and coastal railway, minefields, Allied armour breaking the Axis line |
-| 1944 | Omaha Beach | Warships, landing craft, beach obstacles, bunkers on the real bluffs |
-| 1989 | Brandenburg Gate | The Wall and death strip, crowds climbing the Wall, fireworks, the Wall pulled down |
+| Chapter | Zoom-ins (real terrain + animation) |
+|---|---|
+| 1 First Empires | **Giza, c. 2560 BCE**: Great Pyramid rising layer by layer; sleds hauled up the ramp; boats on the harbour canal |
+| 2 The Classical World | **Gaugamela, 331 BCE**: phalanx, scythed chariots, Alexander's cavalry, Darius flees |
+| 3 Rome and Han | **Pompeii, 79 CE**: Vesuvius ash column and umbrella cloud; pyroclastic flows bury Pompeii and Herculaneum |
+| 4 Faith and Conquest | **Hastings, 1066**: Saxon shield wall on Senlac Hill, Norman feigned retreats, the line breaks |
+| 5 Gunpowder and Sail | **Constantinople, 1453**; **Gravelines, 1588**: fireships scatter the Armada |
+| 6 Revolutions and Empires | **Bastille, 1789**: crowds storm the fortress; **Waterloo, 1815**: cavalry vs. squares, Prussians arrive, the Guard breaks |
+| 7 The World Wars | **Marne, 1914**; **El Alamein, 1942**; **Omaha Beach, 1944** |
+| 8 The Modern World | **Apollo 11, 1969**: Saturn V liftoff with a tracking camera; **Brandenburg Gate, 1989** |
 
 Add a battle by adding a site to `build/build_sites.py` (lat, lon, window km)
 and a matching entry in `SITES` inside `build/template.html`.
