@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Chronoglobe</title>
+<style>
+@font-face{font-family:Monocraft;src:url(data:font/ttf;base64,__FONT__) format("truetype")}
+:root{--bg0:#2a3246;--bg1:#151a26;--ink:#f1efe8;--dim:rgba(241,239,232,.55);--panel:rgba(8,10,16,.72)}
+html,body{margin:0;height:100%;overflow:hidden;background:radial-gradient(ellipse at 50% 48%,var(--bg0) 0%,var(--bg1) 70%);font-family:Monocraft,ui-monospace,monospace;color:var(--ink)}
+canvas{display:block}
+#year{position:fixed;top:22px;left:28px;font-size:46px;letter-spacing:2px;text-shadow:0 3px 0 rgba(0,0,0,.45)}
+#era{position:fixed;top:78px;left:30px;font-size:13px;color:var(--dim);letter-spacing:1px}
+#cap{position:fixed;left:24px;bottom:84px;max-width:min(980px,calc(100vw - 48px));font-size:clamp(14px,1.9vw,24px);line-height:1.45}
+#cap .prev{color:rgba(241,239,232,.45);background:rgba(8,10,16,.45);padding:2px 6px;display:inline-block;margin-bottom:4px}
+#cap .cur{background:var(--panel);padding:4px 8px;display:inline-block;white-space:pre-wrap}
+#credits{position:fixed;left:50%;top:15%;transform:translateX(-50%);background:var(--panel);padding:18px 34px;text-align:center;font-size:clamp(11px,1.45vw,19px);line-height:2.1;color:rgba(241,239,232,.78);transition:opacity 1.2s;white-space:nowrap}
+#credits b{color:#fff;font-weight:normal}
+#labels{position:fixed;inset:0;pointer-events:none}
+.lab{position:absolute;transform:translate(-50%,-50%);white-space:nowrap;color:#fff;text-shadow:0 2px 0 rgba(0,0,0,.7),0 0 6px rgba(0,0,0,.6);transition:opacity .4s;letter-spacing:.5px}
+#bar{position:fixed;left:24px;right:24px;bottom:20px;display:flex;gap:12px;align-items:center;opacity:.25;transition:opacity .3s}
+#bar:hover,body.paused #bar{opacity:1}
+#bar button{font:13px Monocraft,monospace;background:var(--panel);color:var(--ink);border:1px solid rgba(255,255,255,.25);padding:6px 12px;cursor:pointer}
+#scrub{flex:1;accent-color:#9fd36a}
+#load{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;font-size:14px;letter-spacing:3px;color:var(--dim)}
+body.rec #bar{display:none}
+</style>
+</head>
+<body>
+<div id="load">BUILDING WORLD…</div>
+<div id="labels"></div>
+<div id="year"></div><div id="era"></div>
+<div id="credits">
+<b>Borders: Cliopatria (Seshat), CC BY 4.0</b><br>
+Elevation: AWS Terrain Tiles &nbsp;-&nbsp; bathymetry NOAA ETOPO1, land SRTM/GMTED<br>
+Coastlines, lakes, ice &amp; regions: Natural Earth<br>
+Font: Monocraft (OFL) &nbsp;-&nbsp; Engine: three.js (MIT)<br>
+Globe and timeline built for this project
+</div>
+<div id="cap"></div>
+<div id="bar"><button id="pp">PAUSE</button><input id="scrub" type="range" min="0" max="1000" value="0"><button id="restart">RESTART</button></div>
+<script>__THREE__</script>
+<script id="data" type="application/json">__DATA__</script>
+<script>
+(async()=>{
+"use strict";
+const D=JSON.parse(document.getElementById('data').textContent);
+async function unpack(b64,T){const bin=Uint8Array.from(atob(b64),c=>c.charCodeAt(0));const ds=new Blob([bin]).stream().pipeThrough(new DecompressionStream('gzip'));const buf=await new Response(ds).arrayBuffer();return new T(buf)}
+const N=D.n,cls=await unpack(D.cls,Uint8Array),hgt=await unpack(D.h,Int8Array),landIdx=await unpack(D.landIdx,Int32Array),nbr=await unpack(D.nbr,Int32Array),framesAll=await unpack(D.frames,Uint16Array);
+const NL=landIdx.length,YEARS=D.years,frame=k=>framesAll.subarray(k*NL,(k+1)*NL);
+
+// ---------------- scene
+const params=new URLSearchParams(location.search);if(params.has('rec'))document.body.classList.add('rec');
+const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true,preserveDrawingBuffer:true});
+renderer.setPixelRatio(Math.min(2,devicePixelRatio));renderer.setSize(innerWidth,innerHeight);document.body.prepend(renderer.domElement);
+const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(28,innerWidth/innerHeight,1,4000);
+let camDist=470;camera.position.set(0,0,camDist);
+scene.add(new THREE.HemisphereLight(0xdfe8ff,0x3a3326,1.05));
+const sun=new THREE.DirectionalLight(0xfff4e0,1.55);sun.position.set(-260,300,420);scene.add(sun);
+const R=100,unit=.62,spacing=R*Math.sqrt(4*Math.PI/N)*1.1,base=R-4*unit;
+const globe=new THREE.Group();scene.add(globe);
+// pixel texture: speckled block face with darker rim (reads as individual blocks)
+function blockTex(){const c=document.createElement('canvas');c.width=c.height=16;const g=c.getContext('2d');let s=7;const r=()=>(s=(s*16807)%2147483647)/2147483647;
+  for(let y=0;y<16;y++)for(let x=0;x<16;x++){let v=225+r()*30;if(x==0||y==0)v=255;if(x==15||y==15)v=175;g.fillStyle=`rgb(${v},${v},${v})`;g.fillRect(x,y,1,1)}
+  const t=new THREE.CanvasTexture(c);t.magFilter=THREE.NearestFilter;t.minFilter=THREE.LinearMipmapLinearFilter;t.colorSpace=THREE.SRGBColorSpace;return t}
+const geo=new THREE.BoxGeometry(1,1,1);geo.translate(0,.5,0);
+const mat=new THREE.MeshLambertMaterial({map:blockTex()});
+const mesh=new THREE.InstancedMesh(geo,mat,N);globe.add(mesh);
+const core=new THREE.Mesh(new THREE.SphereGeometry(base+.5,64,48),new THREE.MeshBasicMaterial({color:0x12233d}));globe.add(core);
+// Fibonacci positions (same as the baking script)
+const P=new Float32Array(N*3),M=new THREE.Matrix4(),Q=new THREE.Quaternion(),UP=new THREE.Vector3(0,1,0),V=new THREE.Vector3(),SC=new THREE.Vector3();
+for(let i=0;i<N;i++){const phi=Math.acos(1-2*(i+.5)/N),th=Math.PI*(1+Math.sqrt(5))*(i+.5);let lon=((th*180/Math.PI+180)%360+360)%360-180;lon*=Math.PI/180;
+  P[i*3]=Math.sin(phi)*Math.cos(lon);P[i*3+1]=Math.cos(phi);P[i*3+2]=-Math.sin(phi)*Math.sin(lon)}
+for(let i=0;i<N;i++){V.set(P[i*3],P[i*3+1],P[i*3+2]);Q.setFromUnitVectors(UP,V);const top=R+hgt[i]*unit;SC.set(spacing,top-base,spacing);M.compose(V.clone().multiplyScalar(base),Q,SC);mesh.setMatrixAt(i,M)}
+mesh.instanceMatrix.needsUpdate=true;
+const PAL=['#1d4a86','#285fa3','#3c85c1','#dccf9c','#6c9b3b','#4b7b2e','#41694a','#e3cf90','#8b8b8b','#f3f6f8','#9ba67b','#3f8a2c'].map(h=>new THREE.Color(h));
+const terr=new Float32Array(N*3);
+for(let i=0;i<N;i++){const c=PAL[cls[i]],j=1+((Math.sin(i*12.9898)*43758.5453)%1)*.07;terr[i*3]=c.r*j;terr[i*3+1]=c.g*j;terr[i*3+2]=c.b*j}
+const col=new THREE.Color();for(let i=0;i<N;i++){col.setRGB(terr[i*3],terr[i*3+1],terr[i*3+2]);mesh.setColorAt(i,col)}
+mesh.instanceColor.needsUpdate=true;
+// clouds: separate shell of flat white blocks from 3D value noise
+const cl=[];function n3(x,y,z){return Math.sin(x*3.1+Math.sin(y*2.3))*Math.sin(y*3.7+1.3)*Math.sin(z*2.9+Math.sin(x*1.7))+.5*Math.sin(x*7.3+z*5.1)*Math.sin(y*6.7)}
+for(let i=0;i<N;i+=2){const x=P[i*3],y=P[i*3+1],z=P[i*3+2];if(n3(x,y,z)>.42&&Math.abs(y)<.92)cl.push(i)}
+const clouds=new THREE.InstancedMesh(geo,new THREE.MeshLambertMaterial({map:blockTex(),color:0xffffff,transparent:true,opacity:.93}),cl.length);
+cl.forEach((i,k)=>{V.set(P[i*3],P[i*3+1],P[i*3+2]);Q.setFromUnitVectors(UP,V);SC.set(spacing*1.2,unit*1.6,spacing*1.2);M.compose(V.clone().multiplyScalar(R+11*unit),Q,SC);clouds.setMatrixAt(k,M)});
+const cloudG=new THREE.Group();cloudG.add(clouds);globe.add(cloudG);
+
+// ---------------- polities: recolor land blocks per keyframe (staggered voxel flip)
+const polCol=D.colors.map(h=>new THREE.Color(h));let curK=-1,pend=null,pendStep=0;
+const target=new Float32Array(NL*3);
+function computeTarget(k){const f=frame(k);
+  for(let j=0;j<NL;j++){const i=landIdx[j],o=f[j];let r=terr[i*3],g=terr[i*3+1],b=terr[i*3+2];
+    if(o){const pc=polCol[o-1];let border=false;for(let m=0;m<6;m++){const nb=nbr[j*6+m];if(nb<0)continue;/*neighbor index is global*/const nj=landPos[nb];if(nj<0||f[nj]!==o){border=true;break}}
+      const a=border?.88:.55;r=r*(1-a)+pc.r*a;g=g*(1-a)+pc.g*a;b=b*(1-a)+pc.b*a;if(border){r*=.62;g*=.62;b*=.62}}
+    target[j*3]=r;target[j*3+1]=g;target[j*3+2]=b}}
+const landPos=new Int32Array(N).fill(-1);for(let j=0;j<NL;j++)landPos[landIdx[j]]=j;
+function setKey(k,instant){if(k===curK)return;curK=k;computeTarget(k);pend=true;pendStep=instant?99:0}
+function stepRecolor(){if(!pend)return;const S=8;const lim=pendStep>=S?S:pendStep+1;
+  for(let j=0;j<NL;j++){if((j*7919)%S>=lim)continue;col.setRGB(target[j*3],target[j*3+1],target[j*3+2]);mesh.setColorAt(landIdx[j],col)}
+  mesh.instanceColor.needsUpdate=true;pendStep++;if(pendStep>S)pend=false}
+
+// ---------------- labels
+const labEl=document.getElementById('labels');const labPool=[];
+function updLabels(k){const L=D.labels[YEARS[k]]||[];
+  while(labPool.length<L.length){const e=document.createElement('div');e.className='lab';labEl.appendChild(e);labPool.push(e)}
+  labPool.forEach((e,i)=>{const l=L[i];if(!l){e.style.display='none';e._v=null;return}e.style.display='';e.textContent=D.names[l[0]];e._v=new THREE.Vector3(l[1],l[2],l[3]).multiplyScalar(R+14*unit);e._n=l[4];e.style.fontSize=Math.round(Math.min(22,9+Math.sqrt(l[4])*.35))+'px'})}
+const W3=new THREE.Vector3(),CN=new THREE.Vector3();
+function placeLabels(){const placed=[];labPool.forEach(e=>{if(!e._v||e._n<10){e.style.opacity=0;return}W3.copy(e._v).applyMatrix4(globe.matrixWorld);CN.copy(W3).normalize();const face=CN.dot(camera.position.clone().normalize());
+  W3.project(camera);const x=(W3.x*.5+.5)*innerWidth,y=(-W3.y*.5+.5)*innerHeight;let vis=face>.45;
+  for(const p of placed)if(Math.abs(p[0]-x)<120&&Math.abs(p[1]-y)<22)vis=false;if(vis)placed.push([x,y]);
+  e.style.left=x+'px';e.style.top=y+'px';e.style.opacity=vis?Math.min(1,(face-.45)*4):0})}
+
+// ---------------- the tour: [year, lat, lon, caption]
+const TOUR=[
+ [-3000,30,38,"c. 3000 BCE. Cities and kingdoms rise along the Nile and in Mesopotamia."],
+ [-2300,32,44,"Sargon of Akkad unites Mesopotamia into one of history's first empires."],
+ [-1500,31,34,"Egypt's New Kingdom and the Hittites compete for the Near East."],
+ [-1000,34,110,"In China, the Zhou dynasty claims the Mandate of Heaven."],
+ [-500,32,55,"Persia's Achaemenid Empire stretches from Egypt to the Indus."],
+ [-323,33,48,"Alexander the Great dies in Babylon. His generals split his empire."],
+ [-250,24,80,"Under Ashoka, the Maurya Empire spans most of South Asia."],
+ [-200,34,108,"The Qin, then the Han, forge a unified China."],
+ [117,40,18,"Under Trajan, the Roman Empire reaches its greatest extent."],
+ [476,43,20,"The Western Roman Empire falls. Byzantium endures in the east."],
+ [750,30,30,"The Islamic caliphates reach from Spain to Central Asia."],
+ [1100,30,112,"Song China leads the world in cities, printing and trade."],
+ [1279,45,90,"The Mongol Empire becomes the largest contiguous land empire ever."],
+ [1453,41,29,"The Ottomans take Constantinople."],
+ [1550,5,-70,"Europeans reach the Americas. The Aztec and Inca empires fall within decades."],
+ [1650,28,75,"The Ottomans, Safavids, Mughals and Qing dominate Asia."],
+ [1800,40,-30,"Revolutions in America and France reshape the idea of the nation."],
+ [1900,5,20,"European colonial powers carve up nearly all of Africa."],
+ [1914,48,18,"World War I shatters four empires."],
+ [1939,48,20,"World War II begins. It will kill tens of millions."],
+ [1945,45,25,"From the ruins rise the United Nations and two rival superpowers."],
+ [1960,8,25,"Decolonization: dozens of new nations across Africa and Asia."],
+ [1991,55,60,"The Soviet Union dissolves into fifteen independent states."],
+ [2024,40,-100,"Today: about two hundred states share one small, blocky world."]];
+const HOLD=4.2,MOVE=3.0,SEG=HOLD+MOVE,TOTAL=(TOUR.length-1)*SEG+HOLD+4;
+// each segment: travel from the previous stop (year + camera) for MOVE s, then hold while the caption types out
+function tourAt(t){const i=Math.min(TOUR.length-1,Math.floor(t/SEG)),u=t-i*SEG;
+  if(i===0)return{i:0,u,typing:true,year:TOUR[0][0],lat:TOUR[0][1],lon:TOUR[0][2]};
+  const a=TOUR[i-1],b=TOUR[i];let f=Math.min(1,u/MOVE);f=f<.5?2*f*f:1-Math.pow(-2*f+2,2)/2;
+  let dl=b[2]-a[2];if(dl>180)dl-=360;if(dl<-180)dl+=360;
+  return u<MOVE?{i:i-1,u:99,typing:false,year:a[0]+(b[0]-a[0])*f,lat:a[1]+(b[1]-a[1])*f,lon:a[2]+dl*f}
+               :{i,u:u-MOVE,typing:true,year:b[0],lat:b[1],lon:b[2]}}
+
+// ---------------- UI
+const yEl=document.getElementById('year'),eraEl=document.getElementById('era'),capEl=document.getElementById('cap'),credEl=document.getElementById('credits');
+const fmtY=y=>{y=Math.round(y);return y<=0?`${-y+(y===0?1:0)} BCE`:`${y} CE`};
+const eraName=y=>y<-1200?'Bronze Age':y<-500?'Iron Age':y<500?'Classical Antiquity':y<1500?'Middle Ages':y<1800?'Early Modern':y<1945?'Age of Empires & Revolutions':'Contemporary';
+let lastCap=-1;
+function updCaption(i,u){const cur=TOUR[i][3],n=Math.floor(Math.max(0,u-.3)*42);const prev=i>0?TOUR[i-1][3]:'';
+  capEl.innerHTML=(prev?`<span class="prev"></span><br>`:'')+`<span class="cur"></span>`;if(prev)capEl.querySelector('.prev').textContent=prev;capEl.querySelector('.cur').textContent=cur.slice(0,n)+(n<cur.length&&Math.floor(u*4)%2?'_':'')}
+
+// interaction: drag to look around, wheel to zoom
+let drag=null,userYaw=0,userPitch=0,idle=99;
+addEventListener('pointerdown',e=>{if(e.target.closest('#bar'))return;drag=[e.clientX,e.clientY]});
+addEventListener('pointermove',e=>{if(!drag)return;userYaw+=(e.clientX-drag[0])*.005;userPitch=Math.max(-1.2,Math.min(1.2,userPitch+(e.clientY-drag[1])*.005));drag=[e.clientX,e.clientY];idle=0});
+addEventListener('pointerup',()=>drag=null);
+addEventListener('wheel',e=>{camDist=Math.max(260,Math.min(900,camDist*(1+e.deltaY*.001)))},{passive:true});
+let playing=!params.has('t'),T=parseFloat(params.get('t')||0);
+const pp=document.getElementById('pp'),scrub=document.getElementById('scrub');
+const setPlay=p=>{playing=p;pp.textContent=p?'PAUSE':'PLAY';document.body.classList.toggle('paused',!p)};
+pp.onclick=()=>setPlay(!playing);document.getElementById('restart').onclick=()=>{T=0;setPlay(true)};
+scrub.oninput=()=>{T=scrub.value/1000*TOTAL};
+addEventListener('keydown',e=>{if(e.code==='Space'){setPlay(!playing);e.preventDefault()}});
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
+
+let rotX=0,rotY=0,lastLabK=-1,prev=performance.now();
+function render(now,dtOverride){const dt=dtOverride??Math.min(.1,(now-prev)/1000);prev=now;
+  if(playing){T+=dt;if(T>TOTAL)T=0}idle+=dt;scrub.value=T/TOTAL*1000;
+  const s=tourAt(Math.min(T,TOTAL-.001));
+  let k=0;for(let j=0;j<YEARS.length;j++)if(YEARS[j]<=s.year+1e-6)k=j;
+  setKey(k,dtOverride!==undefined);stepRecolor();if(dtOverride!==undefined)while(pend)stepRecolor();
+  if(k!==lastLabK){updLabels(k);lastLabK=k}
+  // ease back to the tour's focus when the viewer stops dragging
+  if(idle>4){userYaw*=.96;userPitch*=.96}
+  const tx=(s.lat-6)*Math.PI/180,ty=-(s.lon*Math.PI/180)-Math.PI/2;
+  let dy=ty-rotY;dy=Math.atan2(Math.sin(dy),Math.cos(dy));
+  const kk=dtOverride!==undefined?1:Math.min(1,dt*2.2);rotY+=dy*kk;rotX+=(tx-rotX)*kk;
+  globe.rotation.set(rotX+userPitch,rotY+userYaw,0,'XYZ');
+  cloudG.rotation.y=T*.012;
+  camera.position.z+=(camDist-camera.position.z)*.1;
+  yEl.textContent=fmtY(s.year);eraEl.textContent=eraName(s.year).toUpperCase();
+  updCaption(s.i,s.u);
+  credEl.style.transition=dtOverride!==undefined?'none':'';credEl.style.opacity=(T<6||T>TOTAL-4)?1:0;
+  renderer.render(scene,camera);placeLabels()}
+document.getElementById('load').remove();
+window.__seek=t=>{T=t;render(performance.now(),0);render(performance.now(),0)};window.__total=TOTAL;window.__ready=true;
+if(params.has('t')){setPlay(false);window.__seek(T)}
+if(!params.has('t'))(function loop(now){render(now);requestAnimationFrame(loop)})(performance.now());
+})();
+</script>
+</body>
+</html>

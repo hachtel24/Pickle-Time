@@ -1,0 +1,49 @@
+# Chronoglobe: a voxel history globe
+
+A Minecraft-style rotating Earth that plays 5,000 years of political borders
+(3000 BCE to 2024 CE) with typed captions, polity labels and a year counter.
+`chronoglobe.html` is fully self-contained (1.8 MB: data, font and three.js inlined).
+
+**Controls:** space or click PAUSE to pause · drag to look around · scroll to zoom ·
+scrubber to jump · add `?rec=1` to hide the controls for screen recording ·
+add `?t=63` to freeze on a given second.
+
+## Data (all real, open licenses)
+| Layer | Source | License |
+|---|---|---|
+| Borders | Cliopatria v0.2.1, Seshat Global History Databank | CC BY 4.0 (credit required) |
+| Elevation / ocean depth | AWS Terrain Tiles (Mapzen terrarium); bathymetry from NOAA ETOPO1, land from SRTM/GMTED | open |
+| Land, lakes, glaciers, deserts/tundra | Natural Earth 1:50m | public domain |
+| Font | Monocraft | OFL 1.1 |
+| Engine | three.js r160 | MIT |
+
+ETOPO 2022 (NOAA NCEI) could not be downloaded from the build environment,
+so elevation comes from AWS Terrain Tiles. To use ETOPO 2022 instead, swap
+the `elev_at()` sampler in `build/build_data.py` to read the 60 arc-second
+GeoTIFF with `rasterio`.
+
+## How it works
+1. `build/build_data.py` places 110,000 blocks on a Fibonacci sphere. For each
+   block it samples elevation, land/water, ice and biome. For 50 keyframe
+   years it finds which Cliopatria polity contains each land block
+   (shapely STRtree; the smallest polygon wins where polygons overlap) and
+   picks label anchors for the largest polities. The output is gzip-packed
+   into `data.json` (~0.8 MB).
+2. `build/template.html` renders the blocks as a single three.js
+   `InstancedMesh` with a pixel texture. It recolors land per keyframe with a
+   staggered "voxel flip", darkens border blocks, and runs the captioned
+   camera tour.
+3. `build/assemble.py` inlines the font, three.js and data into one HTML file.
+
+### Rebuild
+```
+pip install shapely numpy pillow
+# download: cliopatria.geojson (github.com/Seshat-Global-History-Databank/cliopatria),
+#   Natural Earth 50m geojson (land, lakes, glaciated_areas, geography_regions_polys),
+#   terrarium z3 tiles (s3.amazonaws.com/elevation-tiles-prod/terrarium/3/x/y.png),
+#   Monocraft.ttf, three.min.js, into a dl/ folder (see paths in the scripts)
+python build_data.py dl data.json
+python assemble.py . chronoglobe.html
+```
+Edit the `TOUR` list in `template.html` to change the story: each entry is
+`[year, focus latitude, focus longitude, caption]`.
