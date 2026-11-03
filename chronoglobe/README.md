@@ -8,6 +8,16 @@ A Minecraft-style rotating Earth that plays 5,000 years of political borders
 scrubber to jump · add `?rec=1` to hide the controls for screen recording ·
 add `?t=63` to freeze on a given second.
 
+## WWII theater views
+From 1939 to 1945 the globe switches from polity colors to alliances (Allies,
+Axis, Vichy France, neutral countries in their natural terrain colors). The
+camera pulls in on each theater with country and city tags, a date box with a
+legend, and dated captions: invasion of Poland, fall of France, Operation
+Barbarossa, Pearl Harbor, El Alamein, Operation Torch, Stalingrad and D-Day.
+Alliance membership changes by year (`ALLY` in `build/template.html`): for
+example the USSR joins the Allies in 1941, the US in 1942 (after Pearl Harbor),
+and Vichy French Africa and Italy switch sides in 1943-44.
+
 ## Battlefield zoom-ins
 At six key moments the camera dives from the globe into a voxel diorama built on
 that spot's real terrain (AWS Terrain Tiles at zoom 10-12), with scripted armies,

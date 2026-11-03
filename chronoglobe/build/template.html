@@ -56,6 +56,14 @@ body.indio #year,body.indio #era{display:none}
 body.rec #chapbar{bottom:calc(20px + env(safe-area-inset-bottom,0px))}
 body.rec #cap{bottom:calc(66px + env(safe-area-inset-bottom,0px))}
 @media (max-width:760px){#datebox{left:12px;padding:6px 10px;min-width:0}#datebox .d{font-size:26px}#datebox .lg{font-size:11px}#place{font-size:14px}#chapbar{left:12px;right:12px;font-size:10px;bottom:calc(52px + env(safe-area-inset-bottom,0px))}#cap{bottom:calc(92px + env(safe-area-inset-bottom,0px))}}
+
+#tlabels{position:fixed;inset:0;pointer-events:none}
+.tlab{position:absolute;transform:translate(-50%,-50%);white-space:nowrap;background:rgba(12,10,22,.62);padding:2px 8px;transition:opacity .4s}
+.tlab.country{font-size:20px;color:#fff;border-bottom:3px solid rgba(255,255,255,.85);letter-spacing:1px}
+.tlab.city{font-size:15px;color:#e6e2d6;border-top:3px solid #e8b84a}
+body.theater #datebox{display:block}
+body.theater #year,body.theater #era{display:none}
+@media (max-width:760px){.tlab.country{font-size:13px}.tlab.city{font-size:11px}}
 </style>
 </head>
 <body>
@@ -122,13 +130,31 @@ const cloudG=new THREE.Group();cloudG.add(clouds);globe.add(cloudG);
 // ---------------- polities: recolor land blocks per keyframe (staggered voxel flip)
 const polCol=D.colors.map(h=>new THREE.Color(h));let curK=-1,pend=null,pendStep=0;
 const target=new Float32Array(NL*3);
-function computeTarget(k){const f=frame(k);
+// WWII alliances by year (side takes effect from the given year; 'N' = neutral)
+const SIDE_COL={A:new THREE.Color('#a9c4ff'),X:new THREE.Color('#d63a2f'),V:new THREE.Color('#c9ad78')};
+const ALLY={};{const add=(names,rule)=>names.forEach(n=>ALLY[n]=rule);
+ add(['Nazi Germany','Empire of Japan','Free City of Danzig'],[[1939,'X']]);add(['Italian Africa'],[[1939,'X'],[1943,'A']]);add(['French Third Republic','(French Third Republic)','Second Polish Republic'],[[1939,'A']]);
+ add(['Kingdom of Italy'],[[1940,'X'],[1944,'A']]);
+ add(['Hungarian Republic'],[[1940,'X']]);add(['Kingdom of Romania','Principality of Bulgaria'],[[1941,'X'],[1945,'A']]);
+ add(['Independent State of Croatia'],[[1941,'X']]);add(['Kingdom of Thailand'],[[1942,'X']]);
+ add(['Republic of Finland'],[[1941,'X'],[1945,'N']]);add(['Denmark-Norway','Albania'],[[1940,'X']]);
+ add(['Vichy France','(Vichy France)','French Indochina'],[[1940,'V']]);add(['French Africa'],[[1940,'V'],[1943,'A']]);
+ add(['French Mandate for Syria and Lebanon'],[[1940,'V'],[1941,'A']]);
+ add(['Kingdom of Great Britain','(British Empire)','British Africa','British Colonial Empire','British Gold Coast','British Raj','Canada','Commonwealth of Australia','South Africa','Republic of China','Communist Party of China','(Netherlands)','Dutch East Indies','Netherlands Antilles','Belgian Congo','Kingdom of Norway','Kingdom of Egypt','Nepal','New Hebrides','Free French','Lebanon',"Mongolian People's Republic"],[[1939,'A']]);
+ add(['First Hellenic Republic'],[[1940,'A']]);add(['Yugoslavia','Yugoslav Partisans','Union of Soviet Socialist Republics','Kingdom of Iraq','Pahlavi Dynasty','Ethiopia'],[[1941,'A']]);
+ add(['United States of America','Mexico','Unitary State of Brazil','Republic of Cuba','Dominican Republic','Republic of Haiti','Guatemala','Honduras','Republic of El Salvador','Republic of Nicaragua','Republic of Costa Rica','Republic of Panama'],[[1942,'A']]);
+ add(['Republic of Colombia','Bolivia'],[[1943,'A']]);add(['Republic of Liberia'],[[1944,'A']]);
+ add(['Republic of Ecuador','Republic of Peru','Venezuela','Paraguay','Oriental Republic of Uruguay','Republic of Chile','Argentine Republic','Republic of Turkey','Kingdom of Saudi Arabia'],[[1945,'A']])}
+function allySide(name,y){const r=ALLY[name];if(!r)return null;let v=null;for(const[y0,x]of r)if(y>=y0)v=x;return v==='N'?null:v}
+function computeTarget(k,al){const f=frame(k),sides=al?D.names.map(n=>allySide(n,YEARS[k])):null;
   for(let j=0;j<NL;j++){const i=landIdx[j],o=f[j];let r=terr[i*3],g=terr[i*3+1],b=terr[i*3+2];
-    if(o){const pc=polCol[o-1];let border=false;for(let m=0;m<6;m++){const nb=nbr[j*6+m];if(nb<0)continue;/*neighbor index is global*/const nj=landPos[nb];if(nj<0||f[nj]!==o){border=true;break}}
-      const a=border?.88:.55;r=r*(1-a)+pc.r*a;g=g*(1-a)+pc.g*a;b=b*(1-a)+pc.b*a;if(border){r*=.62;g*=.62;b*=.62}}
+    if(o){let border=false;for(let m=0;m<6;m++){const nb=nbr[j*6+m];if(nb<0)continue;const nj=landPos[nb];if(nj<0||f[nj]!==o){border=true;break}}
+      const sd=al?sides[o-1]:'P',pc=al?(sd?SIDE_COL[sd]:null):polCol[o-1];
+      if(pc){const a=border?.92:al?.8:.55;r=r*(1-a)+pc.r*a;g=g*(1-a)+pc.g*a;b=b*(1-a)+pc.b*a;if(border){const d=al?.72:.62;r*=d;g*=d;b*=d}}
+      else if(border){r*=.7;g*=.7;b*=.7}}
     target[j*3]=r;target[j*3+1]=g;target[j*3+2]=b}}
 const landPos=new Int32Array(N).fill(-1);for(let j=0;j<NL;j++)landPos[landIdx[j]]=j;
-function setKey(k,instant){if(k===curK)return;curK=k;computeTarget(k);pend=true;pendStep=instant?99:0}
+function setKey(k,instant,al){const key=k*2+(al?1:0);if(key===curK)return;curK=key;computeTarget(k,al);pend=true;pendStep=instant?99:0}
 function stepRecolor(){if(!pend)return;const S=8;const lim=pendStep>=S?S:pendStep+1;
   for(let j=0;j<NL;j++){if((j*7919)%S>=lim)continue;col.setRGB(target[j*3],target[j*3+1],target[j*3+2]);mesh.setColorAt(landIdx[j],col)}
   mesh.instanceColor.needsUpdate=true;pendStep++;if(pendStep>S)pend=false}
@@ -459,9 +485,14 @@ const TOUR=[
  [1800,40,-30,"Revolutions in America and France reshape the idea of the nation."],
  [1900,5,20,"European colonial powers carve up nearly all of Africa."],
  [1914,48.96,3.05,"World War I begins, and the war that will shatter four empires.","marne"],
- [1939,48,20,"World War II begins. It will kill tens of millions."],
- [1942,30.8,28.95,"By 1942 the Axis reaches its furthest advance, in North Africa and in Russia.","alamein"],
- [1944,49.36,-0.86,"The Allies open a second front in Western Europe.","normandy"],
+ [1939,51,16,"Germany invades Poland. World War II begins in Europe.",null,{date:'SEP 1939',dist:300,labels:[['GERMANY',50.2,9.6,1],['POLAND',52.3,19.5,1],['FRANCE',46.6,2.5,1],['BRITAIN',53,-1.6,1],['SOVIET UNION',56,36,1],['Warsaw',52.23,21.01],['Paris',48.86,2.35],['London',51.51,-.13],['Moscow',55.75,37.62]]}],
+ [1940,47,4,"In six weeks France falls. Germany occupies the north, and a collaborationist regime rules from Vichy.",null,{date:'JUN 1940',dist:280,labels:[['GERMANY',50.2,9.6,1],['VICHY FRANCE',45.3,2.8,1],['BRITAIN',53,-1.6,1],['SPAIN',40,-3.7,1],['Paris',48.86,2.35],['Vichy',46.13,3.43],['London',51.51,-.13],['Madrid',40.42,-3.7]]}],
+ [1941,53,32,"Germany invades the Soviet Union with more than three million troops.",null,{date:'JUN 1941',dist:320,labels:[['SOVIET UNION',57,42,1],['GERMANY',50.2,9.6,1],['Moscow',55.75,37.62],['Leningrad',59.94,30.31],['Kyiv',50.45,30.52]]}],
+ [1941,28,171,"Japan attacks Pearl Harbor. The United States enters the war.",null,{date:'DEC 1941',dist:360,labels:[['JAPAN',37,138,1],['Tokyo',35.68,139.69],['Pearl Harbor',21.36,-157.95]]}],
+ [1942,30.8,28.95,"In Egypt, the British Eighth Army makes its stand at El Alamein.","alamein",{date:'OCT 1942',dist:270,labels:[['EGYPT',26.5,30,1],['LIBYA',27,17,1],['Cairo',30.04,31.24],['Alexandria',31.2,29.92],['Tobruk',32.08,23.96]]}],
+ [1942,37,3,"On 8 November, in Operation Torch, American and British troops land in Morocco and Algeria.",null,{date:'NOV 1942',dist:250,labels:[['SPAIN',40,-3.7,1],['FRENCH NORTH AFRICA',31,1,1],['ITALY',43,12,1],['Lisbon',38.72,-9.14],['Rome',41.9,12.5],['Algiers',36.75,3.06],['Casablanca',33.57,-7.59],['Gibraltar',36.14,-5.35]]}],
+ [1943,49,44,"At Stalingrad the German Sixth Army surrenders. The tide turns in the east.",null,{date:'FEB 1943',dist:300,labels:[['SOVIET UNION',56,48,1],['Stalingrad',48.71,44.51],['Moscow',55.75,37.62],['Rostov',47.24,39.71]]}],
+ [1944,49.36,-0.86,"The Allies open a second front in Western Europe.","normandy",{date:'JUN 1944',dist:280,labels:[['FRANCE',46.6,2.5,1],['BRITAIN',53,-1.6,1],['GERMANY',50.2,9.6,1],['London',51.51,-.13],['Paris',48.86,2.35]]}],
  [1945,45,25,"From the ruins rise the United Nations and two rival superpowers."],
  [1960,8,25,"Decolonization: dozens of new nations across Africa and Asia."],
  [1989,52.52,13.38,"Revolutions sweep across Eastern Europe.","berlin"],
@@ -472,9 +503,9 @@ const SEGS=[];let ACC=0;const pushSeg=o=>{o.t0=ACC;ACC+=o.d;SEGS.push(o)};
 TOUR.forEach((s,i)=>{if(i>0)pushSeg({k:'move',i,d:MOVE});pushSeg({k:'hold',i,d:HOLD});if(s[4]){pushSeg({k:'dive',i,d:DIVE});pushSeg({k:'dio',i,d:SITES[s[4]].dur});pushSeg({k:'rise',i,d:RISE})}});
 const TOTAL=ACC+4;
 function tourAt(t){let j=0;for(let q=0;q<SEGS.length;q++)if(SEGS[q].t0<=t)j=q;const sg=SEGS[j],u=Math.min(t-sg.t0,sg.d),b=TOUR[sg.i];
-  const base={i:sg.i,seg:sg,year:b[0],lat:b[1],lon:b[2],ci:sg.i,cu:99,mode:'globe',f:0};
+  const dOf=x=>(x[5]&&x[5].dist)||camDist;const base={i:sg.i,seg:sg,year:b[0],lat:b[1],lon:b[2],ci:sg.i,cu:99,mode:'globe',f:0,dist:dOf(b)};
   if(sg.k==='move'){const a=TOUR[sg.i-1];let f=u/MOVE;f=f<.5?2*f*f:1-Math.pow(-2*f+2,2)/2;let dl=b[2]-a[2];if(dl>180)dl-=360;if(dl<-180)dl+=360;
-    return{...base,ci:sg.i-1,year:a[0]+(b[0]-a[0])*f,lat:a[1]+(b[1]-a[1])*f,lon:a[2]+dl*f}}
+    return{...base,ci:sg.i-1,year:a[0]+(b[0]-a[0])*f,lat:a[1]+(b[1]-a[1])*f,lon:a[2]+dl*f,dist:dOf(a)+(dOf(b)-dOf(a))*f}}
   if(sg.k==='hold')return{...base,cu:u};
   if(sg.k==='dive')return{...base,mode:'dive',f:u/DIVE};
   if(sg.k==='rise')return{...base,mode:'rise',f:u/RISE};
@@ -501,7 +532,20 @@ function setCap(prevHtml,cur,u){const n=Math.floor(Math.max(0,u-.3)*42);
   capEl.innerHTML=(prevHtml?`<span class="prev">${prevHtml}</span><br>`:'')+`<span class="cur"></span>`;
   const el=capEl.querySelector('.cur');if(typeof cur==='string')el.textContent=cur.slice(0,n)+(n<cur.length&&Math.floor(u*4)%2?'_':'');
   else{const full=cur[1];el.innerHTML=`<em>[${esc(cur[0])}]</em> `+esc(full.slice(0,n))+(n<full.length&&Math.floor(u*4)%2?'_':'')}}
-function updCaption(i,u){setCap(i>0?esc(TOUR[i-1][3]):'',TOUR[i][3],u)}
+const capOf=x=>x[5]&&x[5].date?[x[5].date,x[3]]:x[3];
+const capHtml=x=>x[5]&&x[5].date?`<em>[${esc(x[5].date)}]</em> ${esc(x[3])}`:esc(x[3]);
+function updCaption(i,u){setCap(i>0?capHtml(TOUR[i-1]):'',capOf(TOUR[i]),u)}
+const LEGEND=[['Allies','#a9c4ff'],['Axis','#d63a2f'],['Vichy France','#c9ad78'],['Neutral','#6c9b3b']];
+function theaterBox(date){if(dateEl._k===date)return;dateEl._k=date;dateEl.innerHTML=`<div class="d">${esc(date)}</div>`+LEGEND.map(t=>`<div class="lg"><i style="background:${t[1]}"></i>${t[0]}</div>`).join('')}
+// theater labels: countries and cities from latitude/longitude
+const tEl=document.createElement('div');tEl.id='tlabels';document.body.appendChild(tEl);let tKey=null,tPool=[];
+const llVec=(la,lo,r)=>{const p=(90-la)*Math.PI/180,l=lo*Math.PI/180;return new THREE.Vector3(Math.sin(p)*Math.cos(l)*r,Math.cos(p)*r,-Math.sin(p)*Math.sin(l)*r)};
+function theaterLabels(list,key){if(tKey!==key){tKey=key;tEl.innerHTML='';tPool=(list||[]).map(l=>{const e=document.createElement('div');e.className='tlab '+(l[3]?'country':'city');e.textContent=l[0];tEl.appendChild(e);e._v=llVec(l[1],l[2],R+(l[3]?13:8)*unit);return e})}
+  tPool.forEach(e=>{W3.copy(e._v).applyMatrix4(globe.matrixWorld);CN.copy(W3).normalize();const face=CN.dot(camera.position.clone().normalize());W3.project(camera);
+    e._x=(W3.x*.5+.5)*innerWidth;e._y=(-W3.y*.5+.5)*innerHeight;e.style.opacity=face>.3?Math.min(1,(face-.3)*5):0});
+  // nudge colliding tags apart vertically
+  const placed=[];tPool.forEach(e=>{const w=(e.offsetWidth||80)/2+6;let y=e._y;for(let pass=0;pass<4;pass++){let hit=false;for(const p of placed)if(Math.abs(p[0]-e._x)<w+p[2]&&Math.abs(p[1]-y)<30){y=p[1]+(y>=p[1]?32:-32);hit=true}if(!hit)break}
+    placed.push([e._x,y,w]);e.style.left=e._x+'px';e.style.top=y+'px'})}
 function dioCaption(S,u){let c=0;S.caps.forEach((x,k)=>{if(u>=x[0])c=k});const cur=S.caps[c],prev=c>0?S.caps[c-1]:null;
   setCap(prev?`<em>[${esc(prev[1])}]</em> ${esc(prev[2])}`:'',[cur[1],cur[2]],u-cur[0]);
   const key=S.title+c;if(dateEl._k!==key){dateEl._k=key;
@@ -533,12 +577,13 @@ function render(now,dtOverride){const dt=dtOverride??Math.min(.1,(now-prev)/1000
     dioCaption(S,s.u);labEl.style.opacity=0;
     renderer.render(dio.scene,dio.cam);
     const L=dio.site.label;PV.set(L[0],dio.site.ground(L[0],L[1])+4,L[1]).project(dio.cam);
-    placeEl.textContent=S.title;placeEl.style.left=(PV.x*.5+.5)*innerWidth+'px';placeEl.style.top=(-PV.y*.5+.5)*innerHeight+'px';
+    tEl.style.opacity=0;placeEl.textContent=S.title;placeEl.style.left=(PV.x*.5+.5)*innerWidth+'px';placeEl.style.top=(-PV.y*.5+.5)*innerHeight+'px';
     return}
   // globe modes
-  labEl.style.opacity=s.mode==='globe'?1:0;
+  const opt=TOUR[s.ci][5],th=s.mode==='globe'&&opt&&opt.date;document.body.classList.toggle('theater',!!th);if(th)theaterBox(opt.date);
+  labEl.style.opacity=s.mode==='globe'&&!(opt&&opt.labels)?1:0;tEl.style.opacity=s.mode==='globe'&&opt&&opt.labels?1:0;
   let k=0;for(let j=0;j<YEARS.length;j++)if(YEARS[j]<=s.year+1e-6)k=j;
-  setKey(k,still);stepRecolor();if(still)while(pend)stepRecolor();
+  const al=s.year>=1938.99&&s.year<=1945.01;setKey(k,still,al);stepRecolor();if(still)while(pend)stepRecolor();
   if(k!==lastLabK){updLabels(k);lastLabK=k}
   if(idle>4||s.mode!=='globe'){userYaw*=.9;userPitch*=.9}
   // dive/rise: zoom straight onto the battlefield, fading through the night-blue background
@@ -547,12 +592,12 @@ function render(now,dtOverride){const dt=dtOverride??Math.min(.1,(now-prev)/1000
   let dy=ty-rotY;dy=Math.atan2(Math.sin(dy),Math.cos(dy));
   const kk=still||s.mode!=='globe'?1:Math.min(1,dt*2.2);rotY+=dy*kk;rotX+=(tx-rotX)*kk;
   globe.rotation.set(rotX+userPitch,rotY+userYaw,0,'XYZ');
-  cloudG.rotation.y=T*.012;cloudG.visible=z<.5;
-  const targetZ=camDist+(122-camDist)*z;camera.position.z=s.mode==='globe'&&!still?camera.position.z+(targetZ-camera.position.z)*.1:targetZ;
+  cloudG.rotation.y=T*.012;cloudG.visible=z<.5&&!document.body.classList.contains('theater');
+  const targetZ=s.dist+(122-s.dist)*z;camera.position.z=s.mode==='globe'&&!still?camera.position.z+(targetZ-camera.position.z)*.1:targetZ;
   fadeEl.style.opacity=s.mode==='dive'?ssf(.55,1,s.f):s.mode==='rise'?1-ssf(0,.45,s.f):0;
   yEl.textContent=fmtY(s.year);eraEl.textContent=eraName(s.year).toUpperCase();
   if(s.mode==='globe')updCaption(s.ci,s.cu);else updCaption(s.i,99);
-  renderer.render(scene,camera);placeLabels()}
+  renderer.render(scene,camera);placeLabels();theaterLabels(opt&&opt.labels,s.ci)}
 document.getElementById('load').remove();
 window.__seek=t=>{T=t;render(performance.now(),0);render(performance.now(),0)};window.__total=TOTAL;window.__ready=true;
 window.__segs=SEGS.map(s=>[s.k,TOUR[s.i][0],+s.t0.toFixed(1)]);
