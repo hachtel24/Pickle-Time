@@ -18,6 +18,16 @@ Every zoom-in also ends with an extra aftermath scene.
 scrubber to jump · add `?rec=1` to hide the controls for screen recording ·
 add `?t=63` to freeze on a given second.
 
+## Flag colours
+Each polity's blocks show its flag, stretched over the polity's own latitude and
+longitude box (hoist on the west, top at north), so France reads as a blue-white-red
+tricolour and the US shows stripes and a blue canton. States from before national flags
+use their traditional banner or dynastic colours (Roman red and gold, Byzantine purple,
+Abbasid black, Mongol sky blue and gold, and so on). Polities of fewer than 25 blocks use
+the flag's strongest colour, and legend swatches are rendered mini flags. The rules are
+the `FLAGS` table in `build/template.html`, matched by name; anything unmatched keeps its
+generated colour. During WWII (1939–45) the alliance colours take over.
+
 ## WWII theater views
 From 1939 to 1945 the globe switches from polity colors to alliances (Allies,
 Axis, Vichy France, neutral countries in their natural terrain colors). The

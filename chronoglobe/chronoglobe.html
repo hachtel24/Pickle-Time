@@ -201,11 +201,137 @@ const ALLY={};{const add=(names,rule)=>names.forEach(n=>ALLY[n]=rule);
  add(['Republic of Colombia','Bolivia'],[[1943,'A']]);add(['Republic of Liberia'],[[1944,'A']]);
  add(['Republic of Ecuador','Republic of Peru','Venezuela','Paraguay','Oriental Republic of Uruguay','Republic of Chile','Argentine Republic','Republic of Turkey','Kingdom of Saudi Arabia'],[[1945,'A']])}
 function allySide(name,y){const r=ALLY[name];if(!r)return null;let v=null;for(const[y0,x]of r)if(y>=y0)v=x;return v==='N'?null:v}
-function computeTarget(k,al){const f=frame(k),sides=al?D.names.map(n=>allySide(n,YEARS[k])):null;
+// ---------------- flags: each polity's flag (or traditional banner colours) projected onto its blocks
+// spec: "type:colours|weights" then optional "+e:colour" (centre emblem) and "+t:colour" (hoist triangle)
+// types: h horizontal stripes (top->bottom), v vertical (hoist->fly), s solid, k canton, c nordic cross (bg,cross[,inner]),
+//        cr centred cross, x saltire, d disc, us, uk, ens (blue ensign), br (Brazil)
+const RUS_TRI='h:#FFFFFF,#0039A6,#D52B1E',FR_TRI='v:#0055A4,#FFFFFF,#EF4135',UK='uk',IT='v:#009246,#FFFFFF,#CE2B37',
+  DE_IMP='h:#000000,#FFFFFF,#DD0000',DE='h:#000000,#DD0000,#FFCE00',NLD='h:#AE1C28,#FFFFFF,#21468B',ROME='s:#8B0000+e:#E6B422',
+  BURGUNDY='x:#FFFFFF,#C8102E',ES='h:#AA151B,#F1BF00,#AA151B|1,2,1',PT_OLD='v:#0033A0,#FFFFFF',PT='v:#046A38,#DA291C|2,3',
+  BR='br',MONGOL='s:#8CC0EE+e:#E6B422',ARAB4='h:#CE1126,#FFFFFF,#000000',IRAN='h:#239F40,#FFFFFF,#DA0000',PERSIA_OLD='s:#9B1B30+e:#E6B422',
+  EGYPT_ANC='s:#1F4E9E+e:#E6B422',DK='c:#C8102E,#FFFFFF',SE='c:#006AA7,#FECC00',NO='c:#BA0C2F,#FFFFFF,#00205B',FI='c:#FFFFFF,#002F6C',IS='c:#02529C,#FFFFFF,#DC1E35',
+  PL='h:#FFFFFF,#DC143C',HU='h:#CD2A3E,#FFFFFF,#436F4D',HABS='h:#000000,#F2C230',CN_RED='s:#DE2910+k:#FFDE00',US='us',
+  CENTAM='h:#0F47AF,#FFFFFF,#0F47AF',RUS_MED='s:#B22234+e:#E6B422';
+ const _x=0;
+const FLAGS=[
+ [/Mongolian People's Republic|^Mongolia/,'v:#C4272F,#015197,#C4272F'],[/Liu Song|Sui Dynasty|Northern Wei/,'s:#C68B2C'],
+ [/Soviet|Republics of the Soviet/,'s:#CC0000+k:#FFD700'],[/Russian (Empire|Republic|Federation)|Tsardom of Russia/,RUS_TRI],
+ [/Grand Principality of Moscow|Kievan|Novgorod|^Principality of (Kiev|Vladimir|Rostov|Chernigov|Smolensk|Ryazan|Pereyaslavl|Polotsky|Volhynia)/,RUS_MED],
+ [/United States of America/,US],[/^Canada/,'v:#D80621,#FFFFFF,#D80621|1,2,1+e:#D80621'],[/Commonwealth of Australia|New Zealand/,'ens'],
+ [/British|Kingdom of Great Britain|English Colonial|Éire/,UK],[/Kingdom of England|Norman England|Angevin/,'cr:#FFFFFF,#CE1124'],[/Kingdom of Scotland|Kingdom of Alba/,'x:#005EB8,#FFFFFF'],
+ [/Vichy France|French (Fifth|Fourth|Third|Second) Republic|French Republic|Second French Empire|French (Africa|Indochina|Consulate|Mandate)|Free French|First French Empire|New France/,FR_TRI],
+ [/Kingdom of France|House of Bourbon|West Franks|Kingdom of the Franks|Merovingian|Carolingian/,'s:#1E3A8A+e:#E6B422'],
+ [/Spanish Empire|Crown of Castile|Kingdom of Castile|Iberian Union|Kingdom of León|Kingdom of Asturias/,BURGUNDY],[/Kingdom of Spain|Francoist Spain|Crown of Aragon/,ES],
+ [/Portuguese Republic|Estado Novo|^Portugal/,PT],[/Portuguese|Kingdom of Portugal/,PT_OLD],
+ [/Brazil/,BR],[/Argentin|Río de la Plata|Federal League/,'h:#74ACDF,#FFFFFF,#74ACDF+e:#F6B40E'],[/Mexic/,'v:#006847,#FFFFFF,#CE1126'],
+ [/People's Republic of China|Communist Party of China/,CN_RED],[/^Republic of China|Kuomintang/,'s:#FE0000+k:#000095'],
+ [/Qing/,'s:#F7D117+e:#1C3F94'],[/Ming/,'s:#C8102E+e:#E6B422'],[/Yuan Dynasty|Mongol|Golden Horde|Chagatai|Great Mongol/,MONGOL],
+ [/Song$|Song Dynasty|^Song/,'s:#B22222+e:#F2C230'],[/Tang Dynasty/,'s:#E0A526+e:#8B0000'],[/Han Dynasty|Western Jin|Eastern Wu|\bShu\b|Cao Cao/,'s:#B5281F+e:#1A1A1A'],
+ [/^Qin|Qin Dynasty/,'s:#1A1A1A+e:#C9A227'],[/Sui Dynasty|Northern Wei|Liu Song/,'s:#C68B2C'],[/Zhou Dynasty|Shang Dynasty/,'s:#A0522D+e:#E6B422'],
+ [/Empire of Japan|^Japan|Tokugawa|Shogunate|Heian|Nara Japan|Asuka|Warring States Japan/,'d:#FFFFFF,#BC002D'],
+ [/Mongolian People's Republic|^Mongolia/,'v:#C4272F,#015197,#C4272F'],[/Liu Song|Sui Dynasty|Northern Wei/,'s:#C68B2C'],
+ [/Republic of India/,'h:#FF9933,#FFFFFF,#138808+e:#000080'],[/Mughal/,'s:#2E7D32+e:#E6B422'],[/Maratha/,'s:#FF7722'],[/Maurya|Gupta|Nanda|Shunga|Magadha/,'s:#E07B24+e:#7A1F1F'],
+ [/Pakistan/,'v:#FFFFFF,#01411C|1,3+e:#FFFFFF'],[/Bangladesh/,'d:#006A4E,#F42A41'],[/Nepal|Gorkha/,'s:#DC143C+e:#003893'],
+ [/Ottoman|Republic of Turkey|Sultanate of Rum/,'s:#E30A17+e:#FFFFFF'],
+ [/Achaemenid|Median Kingdom/,PERSIA_OLD],[/Parthian|Sasanian/,'s:#5B2A86+e:#E6B422'],[/Safavid|Afsharid|Zand/,'s:#2E7D32+e:#E6B422'],[/Qajar|Pahlavi|Islamic Republic of Iran/,IRAN],
+ [/Umayyad|Emirate of Córdoba|Caliphate of Córdoba/,'s:#F4F1E8+e:#1B7F3B'],[/Abbasid/,'s:#111111+e:#E6E6E6'],[/Fatimid/,'s:#1B7F3B+e:#FFFFFF'],
+ [/Mamluk|Ayyubid/,'s:#E5C33B+e:#7A1F1F'],[/Almoravid|Almohad|Marinid|Wattasid|Saadi/,'s:#F4F1E8+e:#C8102E'],
+ [/Saudi|Emirate of Nejd|Emirate of Diriyah|Kingdom of Hejaz/,'s:#006C35+e:#FFFFFF'],
+ [/Kingdom of Egypt|Khedivate|Muhammad Ali/,'s:#007A33+e:#FFFFFF'],[/Arab Republic of Egypt|United Arab Republic/,ARAB4],
+ [/Kingdom of Egypt|Old Kingdom|Middle Kingdom|New Kingdom|Ptolemaic|Early Dynastic|Twenty-sixth Dynasty/,EGYPT_ANC],
+ [/Byzantine|Eastern Roman/,'s:#5B2A86+e:#E6B422'],[/Roman (Empire|Republic)|Western Roman/,ROME],
+ [/Holy Roman Empire/,'s:#F2C230+e:#111111'],[/Habsburg|Austrian Empire|Austria-Hungary/,HABS],[/Second Republic of Austria/,'h:#ED2939,#FFFFFF,#ED2939'],
+ [/Nazi Germany/,'d:#DD0000,#FFFFFF'],[/German Empire|North German Confederation|German Africa|German Confederation/,DE_IMP],
+ [/Weimar|Federal Republic of Germany|Federated Republic of Germany|German Democratic Republic/,DE],[/Prussia|Brandenburg|Teutonic/,'h:#000000,#FFFFFF'],
+ [/Kingdom of Italy|Republic of Italy|Italian Africa/,IT],[/Papal States/,'v:#FFE000,#FFFFFF'],[/Republic of Venice/,'s:#B22222+e:#E6B422'],
+ [/Dutch Republic/,'h:#FF7F00,#FFFFFF,#21468B'],[/Netherlands|Dutch/,NLD],[/Belgi/,'v:#000000,#FDDA24,#EF3340'],[/Swiss/,'cr:#DA291C,#FFFFFF'],
+ [/Denmark|Greenland|Kalmar Union|House of Oldenburg/,DK],[/Sweden|Swedish Empire/,SE],[/Norway/,NO],[/Finland/,FI],[/Iceland/,IS],
+ [/Poland|Polish|Jagiellon/,PL],[/Grand Duchy of Lithuania/,'s:#C1272D+e:#FFFFFF'],[/Hungar/,HU],
+ [/Kingdom of Romania|Socialist Republic of Romania|^Romania|Moldavia|Wallachia/,'v:#002B7F,#FCD116,#CE1126'],[/Bulgari/,'h:#FFFFFF,#00966E,#D62612'],
+ [/Yugoslavia/,'h:#003893,#FFFFFF,#DE0000'],[/Czechoslovakia|Bohemia/,'h:#FFFFFF,#D7141A+t:#11457E'],
+ [/Hellenic|Kingdom of Greece|Greek/,'h:#0D5EAF,#FFFFFF,#0D5EAF,#FFFFFF,#0D5EAF,#FFFFFF,#0D5EAF,#FFFFFF,#0D5EAF+k:#0D5EAF'],[/Macedonian Empire|Antigonid|Seleucid/,'s:#7A1F6B+e:#E6B422'],
+ [/Ukraine/,'h:#0057B7,#FFD700'],[/Belarus/,'h:#C8313E,#4AA657|2,1'],[/Kazakh/,'s:#00AFCA+e:#FEC50C'],[/Uzbek/,'h:#0099B5,#FFFFFF,#1EB53A'],[/Turkmen/,'s:#00843D'],[/Kyrgyz/,'s:#E8112D+e:#FFEF00'],
+ [/Mongolian People's Republic|^Mongolia/,'v:#C4272F,#015197,#C4272F'],[/Tibet/,'h:#D52B1E,#003F87,#D52B1E,#003F87,#D52B1E,#003F87+e:#FFFFFF'],
+ [/Republic of Korea$/,'d:#FFFFFF,#CD2E3A'],[/Democratic People's Republic of Korea/,'h:#024FA2,#FFFFFF,#ED1C27,#FFFFFF,#024FA2|2,.3,5,.3,2'],[/Joseon|Korean Empire|Goryeo/,'s:#FFFFFF+e:#CD2E3A'],
+ [/Socialist Republic of Vietnam|Democratic Republic of Vietnam/,'s:#DA251D+e:#FFFF00'],[/Republic of Vietnam/,'h:#FFDA00,#DA251D,#FFDA00,#DA251D,#FFDA00,#DA251D,#FFDA00|6,1,.6,1,.6,1,6'],[/Nguyễn/,'s:#FFDA00+e:#DA251D'],
+ [/Philippines/,'h:#0038A8,#CE1126+t:#FFFFFF'],[/Malaysia|Malaya/,'h:#CC0001,#FFFFFF,#CC0001,#FFFFFF,#CC0001,#FFFFFF,#CC0001+k:#010066'],[/Indonesia|Majapahit/,'h:#FF0000,#FFFFFF'],
+ [/Thailand|Rattanakosin/,'h:#A51931,#F4F5F8,#2D2A4A,#F4F5F8,#A51931|1,1,2,1,1'],[/Cambodia|Kampuchea/,'h:#032EA1,#E00025,#032EA1|1,2,1'],[/Laos/,'h:#CE1126,#002868,#CE1126|1,2,1+e:#FFFFFF'],
+ [/Burma|Myanmar/,'h:#FECB00,#34B233,#EA2839'],[/Sri Lanka|Ceylon/,'s:#8D153A+e:#F7B718'],[/Bhutan/,'h:#FFD520,#FF4E12'],[/Khmer/,'s:#032EA1+e:#E6B422'],[/Srivijaya/,'h:#FF0000,#FFFFFF'],
+ [/Afghanistan|Durrani/,'v:#000000,#D32011,#007A36'],[/Iraq/,ARAB4],[/Syria/,ARAB4],[/Yemen/,ARAB4],[/Jordan/,'h:#000000,#FFFFFF,#007A3D+t:#CE1126'],
+ [/Oman|Muscat/,'h:#FFFFFF,#DB161B,#008000+t:#DB161B'],[/United Arab Emirates|Trucial/,'h:#00732F,#FFFFFF,#000000+t:#FF0000'],[/Israel/,'h:#FFFFFF,#0038B8,#FFFFFF,#0038B8,#FFFFFF|1,1,3,1,1'],
+ [/Ethiopi/,'h:#078930,#FCDD09,#DA121A'],[/Republic of Sudan|South Sudan/,'h:#D21034,#FFFFFF,#000000+t:#007229'],[/Algeria|Regency of Algiers/,'v:#006233,#FFFFFF+e:#D21034'],
+ [/Morocco/,'s:#C1272D+e:#006233'],[/Libyan Arab Republic/,'s:#239E46'],[/Libya/,'h:#E70013,#000000,#239E46|1,2,1'],[/Tunisia|Beylik of Tunis/,'s:#E70013+e:#FFFFFF'],
+ [/Chad/,'v:#002664,#FECB00,#C60C30'],[/Niger$|Republic of the Niger/,'h:#E05206,#FFFFFF,#0DB02B+e:#E05206'],[/Mali/,'v:#14B53A,#FCD116,#CE1126'],[/Mauritania/,'s:#006233+e:#FFC400'],
+ [/Nigeria/,'v:#008751,#FFFFFF,#008751'],[/Democratic Republic of the Congo/,'s:#007FFF+e:#F7D618'],[/Zaire/,'s:#21A33C+e:#FFD200'],[/Republic of the Congo/,'h:#009543,#FBDE4A,#DC241F'],
+ [/Tanzania/,'h:#1EB53A,#FCD116,#000000,#FCD116,#00A3DD|4,1,3,1,4'],[/Kenya/,'h:#000000,#FFFFFF,#BB0000,#FFFFFF,#006600|4,1,4,1,4'],[/Angola/,'h:#CC092F,#000000+e:#FFCB00'],
+ [/Mozambique/,'h:#009739,#FFFFFF,#000000,#FFFFFF,#FCE100|4,1,4,1,4+t:#D21034'],[/Zambia/,'s:#198A00+e:#EF7D00'],[/Zimbabwe|Rhodesia/,'h:#006400,#FFD200,#D40000,#000000,#D40000,#FFD200,#006400'],
+ [/Botswana/,'h:#75AADB,#000000,#75AADB|2,1,2'],[/Namibia/,'h:#003580,#D21034,#009543'],[/Madagascar|Merina/,'h:#FC3D32,#007E3A+t:#FFFFFF'],[/Somali/,'s:#4189DD+e:#FFFFFF'],
+ [/Cameroon/,'v:#007A5E,#CE1126,#FCD116'],[/Central African/,'h:#003082,#FFFFFF,#289728,#FFCE00'],[/Gabon/,'h:#009E60,#FCD116,#3A75C4'],[/Ghana$|^Ghana/,'h:#CE1126,#FCD116,#006B3F+e:#000000'],
+ [/Côte d'Ivoire/,'v:#F77F00,#FFFFFF,#009E60'],[/^Guinea/,'v:#CE1126,#FCD116,#009460'],[/Senegal/,'v:#00853F,#FDEF42,#E31B23'],[/Burkina/,'h:#EF2B2D,#009E49+e:#FCD116'],
+ [/Benin/,'h:#FCD116,#E8112D+t:#008751'],[/Togo/,'h:#006A4E,#FFCE00,#006A4E,#FFCE00,#006A4E+k:#D21034'],[/Sierra Leone/,'h:#1EB53A,#FFFFFF,#0072C6'],[/Liberia/,US],
+ [/Uganda/,'h:#000000,#FCDC04,#D90000,#000000,#FCDC04,#D90000'],[/Malawi/,'h:#000000,#CE1126,#339E35'],[/Lesotho/,'h:#00209F,#FFFFFF,#009543'],[/South Africa/,'h:#E03C31,#FFFFFF,#007749,#FFFFFF,#001489|5,1,4,1,5+t:#000000'],
+ [/Inca/,'s:#E2B33C+e:#C8102E'],[/Aztec/,'s:#2E8B57+e:#E6B422'],[/Maya/,'s:#1F8A70+e:#E6E0C8'],[/Haudenosaunee/,'s:#5B2A86+e:#FFFFFF'],
+ [/Peru/,'v:#D91023,#FFFFFF,#D91023'],[/Bolivia/,'h:#D52B1E,#F9E300,#007934'],[/Colombia|New Granada|Ecuador/,'h:#FCD116,#003893,#CE1126|2,1,1'],[/Venezuela/,'h:#FCE300,#00247D,#CF142B'],
+ [/Chile/,'h:#FFFFFF,#D52B1E+k:#0039A6'],[/Paraguay/,'h:#D52B1E,#FFFFFF,#0038A8'],[/Uruguay/,'h:#FFFFFF,#0038A8,#FFFFFF,#0038A8,#FFFFFF,#0038A8,#FFFFFF,#0038A8,#FFFFFF+k:#FFFFFF'],
+ [/Cuba/,'h:#002A8F,#FFFFFF,#002A8F,#FFFFFF,#002A8F+t:#CF142B'],[/Haiti/,'h:#00209F,#D21034'],[/Dominican/,'cr:#002D62,#FFFFFF'],[/Guatemala/,'v:#4997D0,#FFFFFF,#4997D0'],
+ [/Honduras|Nicaragua|El Salvador/,CENTAM],[/Costa Rica/,'h:#002B7F,#FFFFFF,#CE1126,#FFFFFF,#002B7F|1,1,2,1,1'],[/Panama/,'v:#FFFFFF,#D21034'],[/Guyana/,'s:#009E49+t:#FCD116'],[/Suriname/,'h:#377E3F,#FFFFFF,#B40A2D,#FFFFFF,#377E3F|2,1,4,1,2'],
+ [/Papua New Guinea/,'x:#CE1126,#000000'],[/Carthage/,'s:#5B2A86+e:#E6B422'],[/Kingdom of Kush|Makuria|Alodia|Nobatia|Axum/,'s:#B5651D+e:#E6B422'],
+ [/Assyria|Babylon|Akkad|Sumer|Elam|Mitanni|Hittite/,'s:#8C6B3F+e:#2E4F9E'],[/Scythia|Xiongnu|Huns|Göktürk|Turks|Rouran|Khazar|Kipchak/,'s:#6B7B3A+e:#E6B422'],
+];
+const flagCache=new Map();
+function parseFlag(spec){const out={t:'s',c:['#888888'],w:null,e:null,t2:null,k:null};const parts=spec.split('+');const [ty,rest]=parts[0].includes(':')?parts[0].split(/:(.*)/s):[parts[0],''];
+  out.t=ty;if(rest){const [cs,ws]=rest.split('|');out.c=cs.split(',');if(ws)out.w=ws.split(',').map(Number)}
+  for(const p of parts.slice(1)){const [k,v]=p.split(':');if(k==='e')out.e=v;if(k==='t')out.t2=v;if(k==='k')out.k=v}
+  out.C=out.c.map(h=>new THREE.Color(h));['e','t2','k'].forEach(k=>{if(out[k])out[k+'C']=new THREE.Color(out[k])});
+  // main colour for tiny polities and swatches: the most saturated colour in the flag
+  const all=[...out.C,out.eC,out.t2C,out.kC].filter(Boolean);const hsl={};
+  out.main=all.reduce((b,c)=>{c.getHSL(hsl);const s=hsl.s*(1-Math.abs(hsl.l-.5)*1.6);return s>b[0]?[s,c]:b},[-1,all[0]])[1];return out}
+function flagOf(name){if(flagCache.has(name))return flagCache.get(name);let f=null;const clean=name.replace(/^\(|\)$/g,'');
+  for(const[re,spec]of FLAGS)if(re.test(clean)){f=parseFlag(spec);break}
+  if(!f){const i=D.names.indexOf(name);f=parseFlag('s:'+(i>=0?D.colors[i]:'#888888'))}
+  flagCache.set(name,f);return f}
+const W_=new THREE.Color('#FFFFFF'),R_=new THREE.Color('#C8102E'),B_=new THREE.Color('#012169');
+function stripe(C,w,x){const ws=w||C.map(()=>1),tot=ws.reduce((a,b)=>a+b,0);let a=0;for(let i=0;i<C.length;i++){a+=ws[i]/tot;if(x<a)return C[i]}return C[C.length-1]}
+function ukAt(u,v){const du=Math.abs(u-.5),dv=Math.abs(v-.5);if(du<.06||dv<.1)return R_;if(du<.1||dv<.16)return W_;
+  const d1=Math.abs((u-.5)-(v-.5)*1.6),d2=Math.abs((u-.5)+(v-.5)*1.6);if(Math.min(d1,d2)<.04)return R_;if(Math.min(d1,d2)<.09)return W_;return B_}
+// colour of flag f at u (0 hoist/west .. 1 fly/east), v (0 top/north .. 1 bottom)
+function flagAt(f,u,v){const C=f.C;let c;
+  switch(f.t){
+    case'h':c=stripe(C,f.w,v);break;case'v':c=stripe(C,f.w,u);break;
+    case'c':{const cv=Math.abs(u-.36)<.07,ch=Math.abs(v-.5)<.11;c=(cv||ch)?((C[2]&&(Math.abs(u-.36)<.035||Math.abs(v-.5)<.055))?C[2]:C[1]):C[0];break}
+    case'cr':c=(Math.abs(u-.5)<.09||Math.abs(v-.5)<.13)?C[1]:C[0];break;
+    case'x':c=Math.min(Math.abs(u-v),Math.abs(u-(1-v)))<.09?C[1]:C[0];break;
+    case'd':c=Math.hypot((u-.5)*1.5,v-.5)<.3?C[1]:C[0];break;
+    case'us':c=(u<.4&&v<.54)?((Math.floor(u*30)+Math.floor(v*22))%2&&(u*30%1>.5)?W_:new THREE.Color('#3C3B6E')):(Math.floor(v*13)%2?W_:new THREE.Color('#B22234'));break;
+    case'uk':c=ukAt(u,v);break;
+    case'ens':c=(u<.5&&v<.5)?ukAt(u*2,v*2):(((Math.floor(u*9)*7+Math.floor(v*5)*3)%11===0)?W_:new THREE.Color('#012169'));break;
+    case'br':c=Math.hypot((u-.5)*1.4,v-.5)<.2?new THREE.Color('#002776'):(Math.abs(u-.5)/.44+Math.abs(v-.5)/.4<1?new THREE.Color('#FEDF00'):new THREE.Color('#009C3B'));break;
+    default:c=C[0]}
+  if(f.kC&&u<.42&&v<.5)c=f.kC;
+  if(f.t2C&&u<(.5-Math.abs(v-.5))*.9)c=f.t2C;
+  if(f.eC&&Math.hypot((u-.5)*1.5,v-.5)<.085)c=f.eC;
+  return c}
+// tiny rendered flag for legends
+const swatchCache=new Map();
+function flagSwatch(name){if(swatchCache.has(name))return swatchCache.get(name);const f=flagOf(name),cv=document.createElement('canvas');cv.width=30;cv.height=20;const g=cv.getContext('2d');
+  for(let y=0;y<20;y++)for(let x=0;x<30;x++){g.fillStyle='#'+flagAt(f,(x+.5)/30,(y+.5)/20).getHexString();g.fillRect(x,y,1,1)}
+  const url=cv.toDataURL();swatchCache.set(name,url);return url}
+
+const LAT=new Float32Array(N),LON=new Float32Array(N);for(let i=0;i<N;i++){LAT[i]=Math.asin(P[i*3+1]);LON[i]=Math.atan2(-P[i*3+2],P[i*3])}
+// per-polity lat/lon box for this keyframe (and a dateline-shifted longitude range, for Russia etc.)
+function polyBoxes(f){const n=D.names.length+1,bb=new Float32Array(n*7);for(let o=0;o<n;o++){const k=o*7;bb[k]=bb[k+2]=bb[k+4]=99;bb[k+1]=bb[k+3]=bb[k+5]=-99}
+  for(let j=0;j<NL;j++){const o=f[j];if(!o)continue;const i=landIdx[j],la=LAT[i],lo=LON[i],l2=lo<0?lo+2*Math.PI:lo,k=o*7;
+    if(la<bb[k])bb[k]=la;if(la>bb[k+1])bb[k+1]=la;if(lo<bb[k+2])bb[k+2]=lo;if(lo>bb[k+3])bb[k+3]=lo;if(l2<bb[k+4])bb[k+4]=l2;if(l2>bb[k+5])bb[k+5]=l2;bb[k+6]++}
+  return bb}
+function computeTarget(k,al){const f=frame(k),sides=al?D.names.map(n=>allySide(n,YEARS[k])):null,bb=al?null:polyBoxes(f);
   for(let j=0;j<NL;j++){const i=landIdx[j],o=f[j];let r=terr[i*3],g=terr[i*3+1],b=terr[i*3+2];
     if(o){let border=false;for(let m=0;m<6;m++){const nb=nbr[j*6+m];if(nb<0)continue;const nj=landPos[nb];if(nj<0||f[nj]!==o){border=true;break}}
-      const sd=al?sides[o-1]:'P',pc=al?(sd?SIDE_COL[sd]:null):polCol[o-1];
-      if(pc){const a=border?.92:al?.8:.55;r=r*(1-a)+pc.r*a;g=g*(1-a)+pc.g*a;b=b*(1-a)+pc.b*a;if(border){const d=al?.72:.62;r*=d;g*=d;b*=d}}
+      let pc;if(al){const sd=sides[o-1];pc=sd?SIDE_COL[sd]:null}
+      else{const fl=flagOf(D.names[o-1]),q=o*7;
+        if(bb[q+6]<25)pc=fl.main;   // too small to read a pattern: the flag's strongest colour
+        else{const lo=LON[i],s1=bb[q+3]-bb[q+2],s2=bb[q+5]-bb[q+4],wrap=s2<s1,lmin=wrap?bb[q+4]:bb[q+2],span=Math.max(wrap?s2:s1,1e-3),l=wrap&&lo<0?lo+2*Math.PI:lo;
+          pc=flagAt(fl,(l-lmin)/span,(bb[q+1]-LAT[i])/Math.max(bb[q+1]-bb[q],1e-3))}}
+      if(pc){const a=border?.92:al?.8:.84;r=r*(1-a)+pc.r*a;g=g*(1-a)+pc.g*a;b=b*(1-a)+pc.b*a;if(border){const d=al?.72:.62;r*=d;g*=d;b*=d}}
       else if(border){r*=.7;g*=.7;b*=.7}}
     target[j*3]=r;target[j*3+1]=g;target[j*3+2]=b}}
 const landPos=new Int32Array(N).fill(-1);for(let j=0;j<NL;j++)landPos[landIdx[j]]=j;
@@ -761,8 +887,8 @@ const capHtml=x=>x[5]&&x[5].date?`<em>[${esc(x[5].date)}]</em> ${esc(x[3])}`:esc
 function updCaption(i,u){setCap(i>0?capHtml(TOUR[i-1]):'',capOf(TOUR[i]),u)}
 const LEGEND=[['Allies','#a9c4ff'],['Axis','#d63a2f'],['Vichy France','#c9ad78'],['Neutral','#6c9b3b']];
 function theaterBox(date,war,k,lat,lon){const key=date+k+war;if(dateEl._k===key)return;dateEl._k=key;let items=LEGEND;
-  if(!war){const f=llVec(lat,lon,1),L=(D.labels[YEARS[k]]||[]).filter(l=>l[1]*f.x+l[2]*f.y+l[3]*f.z>.82&&l[4]>=8).slice(0,4);items=L.map(l=>[D.names[l[0]],D.colors[l[0]]])}
-  dateEl.innerHTML=`<div class="d">${esc(date)}</div>`+items.map(t=>`<div class="lg"><i style="background:${t[1]}"></i>${esc(t[0])}</div>`).join('')}
+  if(!war){const f=llVec(lat,lon,1),L=(D.labels[YEARS[k]]||[]).filter(l=>l[1]*f.x+l[2]*f.y+l[3]*f.z>.82&&l[4]>=8).slice(0,4);items=L.map(l=>[D.names[l[0]],`url(${flagSwatch(D.names[l[0]])}) center/100% 100%`,1])}
+  dateEl.innerHTML=`<div class="d">${esc(date)}</div>`+items.map(t=>`<div class="lg"><i style="background:${t[1]}${t[2]?';width:20px;height:13px;outline:1px solid rgba(255,255,255,.35)':''}"></i>${esc(t[0])}</div>`).join('')}
 // theater labels: countries and cities from latitude/longitude
 const tEl=document.createElement('div');tEl.id='tlabels';document.body.appendChild(tEl);let tKey=null,tPool=[];
 const llVec=(la,lo,r)=>{const p=(90-la)*Math.PI/180,l=lo*Math.PI/180;return new THREE.Vector3(Math.sin(p)*Math.cos(l)*r,Math.cos(p)*r,-Math.sin(p)*Math.sin(l)*r)};
