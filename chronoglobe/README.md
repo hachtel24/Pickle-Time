@@ -8,6 +8,23 @@ A Minecraft-style rotating Earth that plays 5,000 years of political borders
 scrubber to jump · add `?rec=1` to hide the controls for screen recording ·
 add `?t=63` to freeze on a given second.
 
+## Battlefield zoom-ins
+At six key moments the camera dives from the globe into a voxel diorama built on
+that spot's real terrain (AWS Terrain Tiles at zoom 10-12), with scripted armies,
+a date box and legend, a location tag and dated captions:
+
+| Year | Battlefield | What happens |
+|---|---|---|
+| 331 BCE | Gaugamela | Phalanx and Persian line, scythed chariots, Alexander's cavalry charge, Darius flees |
+| 1453 | Constantinople | Bombards against the Theodosian walls (with outer wall and moat), the breach, Hagia Sophia, Galata Tower, ships in the Golden Horn |
+| 1914 | River Marne | Real Marne valley, Paris taxis bringing troops, German advance and retreat, trenches dug |
+| 1942 | El Alamein | Real coastline and coastal railway, minefields, Allied armour breaking the Axis line |
+| 1944 | Omaha Beach | Warships, landing craft, beach obstacles, bunkers on the real bluffs |
+| 1989 | Brandenburg Gate | The Wall and death strip, crowds climbing the Wall, fireworks, the Wall pulled down |
+
+Add a battle by adding a site to `build/build_sites.py` (lat, lon, window km)
+and a matching entry in `SITES` inside `build/template.html`.
+
 ## Data (all real, open licenses)
 | Layer | Source | License |
 |---|---|---|
@@ -43,6 +60,7 @@ pip install shapely numpy pillow
 #   terrarium z3 tiles (s3.amazonaws.com/elevation-tiles-prod/terrarium/3/x/y.png),
 #   Monocraft.ttf, three.min.js, into a dl/ folder (see paths in the scripts)
 python build_data.py dl data.json
+python build_sites.py dl/sitetiles sites.json
 python assemble.py . chronoglobe.html
 ```
 Edit the `TOUR` list in `template.html` to change the story: each entry is

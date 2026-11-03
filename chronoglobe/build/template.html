@@ -36,6 +36,26 @@ canvas{touch-action:none}
  #bar{left:12px;right:12px;opacity:.85}
  .lab{font-size:10px!important}
 }
+
+#fade{position:fixed;inset:0;background:#1a2030;opacity:0;pointer-events:none}
+#datebox{position:fixed;top:calc(18px + env(safe-area-inset-top,0px));left:22px;background:rgba(14,10,30,.88);border:3px solid #3a2f6e;padding:10px 18px 12px;display:none;min-width:220px}
+#datebox .d{font-size:46px;color:#fff04a;text-shadow:3px 3px 0 #6b5a12;letter-spacing:1px;margin-bottom:6px;white-space:nowrap}
+#datebox .lg{font-size:14px;display:flex;align-items:center;gap:8px;line-height:1.75}
+#datebox .lg i{width:13px;height:13px;display:inline-block}
+#place{position:fixed;transform:translate(-50%,-100%);background:rgba(10,8,20,.72);color:#fff04a;padding:3px 10px;font-size:22px;white-space:nowrap;display:none;pointer-events:none}
+body.indio #datebox,body.indio #place{display:block}
+body.indio #year,body.indio #era{display:none}
+#cap em{font-style:normal;color:#f0a830}
+#cap .prev em{color:rgba(240,168,48,.55)}
+#chapbar{position:fixed;left:24px;right:24px;bottom:calc(58px + env(safe-area-inset-bottom,0px));font-size:12px;color:rgba(241,239,232,.8);pointer-events:none}
+#chapbar .row{display:flex;justify-content:space-between;margin-bottom:5px}
+#chapbar .track{display:flex;gap:3px;height:6px}
+#chapbar .track i{background:rgba(255,255,255,.18);position:relative;overflow:hidden}
+#chapbar .track b{position:absolute;inset:0 auto 0 0;background:#c8382f;width:0}
+#cap{bottom:calc(104px + env(safe-area-inset-bottom,0px))}
+body.rec #chapbar{bottom:calc(20px + env(safe-area-inset-bottom,0px))}
+body.rec #cap{bottom:calc(66px + env(safe-area-inset-bottom,0px))}
+@media (max-width:760px){#datebox{left:12px;padding:6px 10px;min-width:0}#datebox .d{font-size:26px}#datebox .lg{font-size:11px}#place{font-size:14px}#chapbar{left:12px;right:12px;font-size:10px;bottom:calc(52px + env(safe-area-inset-bottom,0px))}#cap{bottom:calc(92px + env(safe-area-inset-bottom,0px))}}
 </style>
 </head>
 <body>
@@ -50,9 +70,11 @@ Font: Monocraft (OFL) &nbsp;-&nbsp; Engine: three.js (MIT)<br>
 Globe and timeline built for this project
 </div>
 <div id="cap"></div>
+<div id="datebox"></div><div id="place"></div><div id="chapbar"></div><div id="fade"></div>
 <div id="bar"><button id="pp">PAUSE</button><input id="scrub" type="range" min="0" max="1000" value="0"><button id="restart">RESTART</button></div>
 <script>__THREE__</script>
 <script id="data" type="application/json">__DATA__</script>
+<script id="sites" type="application/json">__SITES__</script>
 <script>
 (async()=>{
 "use strict";
@@ -122,14 +144,308 @@ function placeLabels(){const placed=[];labPool.forEach(e=>{if(!e._v||e._n<10){e.
   for(const p of placed)if(Math.abs(p[0]-x)<120&&Math.abs(p[1]-y)<22)vis=false;if(vis)placed.push([x,y]);
   e.style.left=x+'px';e.style.top=y+'px';e.style.opacity=vis?Math.min(1,(face-.45)*4):0})}
 
-// ---------------- the tour: [year, lat, lon, caption]
+// ================================================================
+//  BATTLEFIELD DIORAMAS — real local terrain + scripted voxel armies
+// ================================================================
+const SD=JSON.parse(document.getElementById('sites').textContent);
+for(const k in SD)SD[k].E=await unpack(SD[k].elev,Int16Array);
+const h2=(a,b)=>{const x=Math.sin(a*127.1+b*311.7)*43758.5453;return x-Math.floor(x)};
+const h1=a=>h2(a,7.13);
+const ssf=(a,b,x)=>{x=Math.max(0,Math.min(1,(x-a)/(b-a)));return x*x*(3-2*x)};
+function mul32(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const CC={};const C3=h=>CC[h]||(CC[h]=new THREE.Color(h));
+const dio={scene:new THREE.Scene(),cam:new THREE.PerspectiveCamera(34,innerWidth/innerHeight,1,3000),key:null};
+dio.scene.fog=new THREE.Fog(0x1c2231,170,330);
+dio.scene.add(new THREE.HemisphereLight(0xe6eeff,0x4a3f2c,1.1));
+{const s=new THREE.DirectionalLight(0xfff1dc,1.6);s.position.set(-60,120,70);dio.scene.add(s)}
+const dMat=new THREE.MeshLambertMaterial({map:blockTex()});
+const GMAX=112;
+const tTop=new THREE.InstancedMesh(geo,dMat,GMAX*GMAX),tBody=new THREE.InstancedMesh(geo,dMat,GMAX*GMAX),props=new THREE.InstancedMesh(geo,dMat,36000),dyn=new THREE.InstancedMesh(geo,dMat,14000);
+for(const m of[tTop,tBody,props,dyn]){m.setColorAt(0,C3('#fff'));m.frustumCulled=false;dio.scene.add(m)}
+dyn.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+const _m=new THREE.Matrix4(),_q=new THREE.Quaternion(),_p=new THREE.Vector3(),_s=new THREE.Vector3(),_o=new THREE.Vector3(),_Y=new THREE.Vector3(0,1,0),_q0=new THREE.Quaternion();
+function putBox(mesh,n,x,y,z,sx,sy,sz,col,q){_p.set(x,y,z);_s.set(Math.max(.001,sx),Math.max(.001,sy),Math.max(.001,sz));_m.compose(_p,q||_q0,_s);mesh.setMatrixAt(n,_m);mesh.setColorAt(n,C3(col))}
+
+// ---------- voxel unit models: boxes [x, yBottom, z, sx, sy, sz, colorKey], facing +x
+const MOD={
+ soldier:{b:[[0,0,0,.26,.34,.2,'L'],[0,.34,0,.3,.36,.24,'K'],[0,.7,0,.22,.22,.22,'S'],[0,.88,0,.27,.08,.27,'H'],[.16,.4,.12,.5,.06,.06,'D']],mz:[.45,.43,.12]},
+ pike:{b:[[0,0,0,.26,.34,.2,'L'],[0,.34,0,.3,.36,.24,'K'],[0,.7,0,.22,.22,.22,'S'],[0,.88,0,.26,.12,.26,'H'],[.7,.62,.13,2.3,.05,.05,'W'],[.05,.3,-.17,.36,.46,.06,'T']]},
+ horse:{b:[[0,.5,0,1.15,.45,.36,'B'],[.4,0,.12,.12,.5,.12,'B'],[.4,0,-.12,.12,.5,.12,'B'],[-.4,0,.12,.12,.5,.12,'B'],[-.4,0,-.12,.12,.5,.12,'B'],[.66,.74,0,.36,.42,.24,'B'],[-.05,.95,0,.3,.4,.26,'K'],[-.05,1.35,0,.22,.22,.22,'S'],[-.05,1.57,0,.24,.12,.24,'H'],[.5,1.1,.2,1.6,.05,.05,'W']]},
+ chariot:{b:[[-.2,0,.36,.55,.55,.08,'D'],[-.2,0,-.36,.55,.55,.08,'D'],[-.2,.25,0,.6,.42,.62,'K'],[-.2,.12,.56,.1,.06,.5,'G'],[-.2,.12,-.56,.1,.06,.5,'G'],[.8,.35,.2,.85,.36,.26,'B'],[.8,.35,-.2,.85,.36,.26,'B'],[.8,0,.2,.12,.36,.12,'B'],[.8,0,-.2,.12,.36,.12,'B'],[1.2,.55,0,.3,.36,.5,'B'],[-.2,.67,0,.26,.36,.24,'T'],[-.2,1.03,0,.2,.2,.2,'S']]},
+ tank:{b:[[0,.25,0,2.2,.5,1.3,'K'],[0,0,.62,2.3,.42,.28,'D'],[0,0,-.62,2.3,.42,.28,'D'],[-.15,.75,0,1,.42,.9,'K'],[.9,.85,0,1.25,.13,.13,'G'],[-.15,1.17,0,.34,.05,.34,'T']],mz:[1.6,.9,0]},
+ gun:{b:[[0,0,.33,.5,.5,.08,'D'],[0,0,-.33,.5,.5,.08,'D'],[.1,.22,0,.12,.48,.72,'K'],[.5,.4,0,1.25,.12,.12,'G'],[-.6,.06,0,1,.1,.16,'K'],[-.45,0,.55,.26,.34,.2,'K'],[-.45,.34,.55,.22,.22,.22,'S']],mz:[1.2,.45,0]},
+ bombard:{b:[[0,0,0,1.7,.35,.85,'W'],[.25,.35,0,2.3,.6,.6,'Z'],[1.4,.33,0,.12,.64,.64,'D'],[-.9,0,.6,.26,.34,.2,'L'],[-.9,.34,.6,.3,.36,.24,'K'],[-.9,.7,.6,.22,.22,.22,'S'],[-.9,.88,.6,.26,.12,.26,'H']],mz:[1.6,.65,0]},
+ plane:{b:[[0,0,0,2.3,.38,.38,'K'],[.1,.12,0,.7,.08,3.6,'K'],[.1,.2,1.25,.45,.04,.45,'T'],[.1,.2,-1.25,.45,.04,.45,'T'],[-1.05,.3,0,.45,.52,.08,'K'],[-1.05,.15,0,.38,.06,1.2,'K'],[1.17,-.2,0,.05,.8,.14,'D'],[.3,.35,0,.6,.18,.28,'Q']]},
+ warship:{b:[[0,0,0,7,.9,1.6,'K'],[3.9,0,0,1.2,.9,.9,'K'],[-.5,.9,0,2.2,1,1.1,'G'],[2,.9,0,.95,.42,.85,'G'],[-2.7,.9,0,.95,.42,.85,'G'],[2.9,1.06,0,1.3,.13,.13,'D'],[-1.7,1.06,0,1.3,.13,.13,'D'],[-.3,1.9,0,.55,.9,.55,'D'],[-1.5,1.9,0,.05,.5,.6,'T']],mz:[3.6,1.12,0]},
+ lcvp:{b:[[0,0,0,2,.58,1.1,'K'],[1.05,0,0,.12,.66,1,'G'],[-.3,.58,.25,.22,.22,.22,'H'],[.1,.58,-.2,.22,.22,.22,'H'],[-.6,.58,-.1,.22,.22,.22,'H']]},
+ taxi:{b:[[0,.2,0,1.7,.3,.72,'X'],[-.3,.5,0,.9,.48,.68,'D'],[.55,.5,0,.55,.26,.6,'X'],[.55,0,.37,.4,.4,.1,'D'],[.55,0,-.37,.4,.4,.1,'D'],[-.55,0,.37,.4,.4,.1,'D'],[-.55,0,-.37,.4,.4,.1,'D']]},
+ galley:{b:[[0,0,0,4.6,.6,1.2,'W'],[2.5,.2,0,.8,.5,.6,'W'],[0,.6,0,.2,3,.2,'W'],[.08,1.4,0,.08,1.6,2.1,'C'],[0,3.6,0,.05,.42,.65,'T'],[0,.25,.75,3,.06,.35,'W'],[0,.25,-.75,3,.06,.35,'W']]},
+ person:{b:[[0,0,0,.24,.34,.18,'P'],[0,.34,0,.3,.34,.22,'R'],[0,.68,0,.22,.22,.22,'S'],[0,.86,0,.23,.06,.23,'Y']]},
+ tent:{b:[[0,0,0,1.1,.55,1,'C'],[0,.55,0,.75,.3,.9,'T'],[0,.85,0,.35,.15,.8,'C']]},
+};
+const FIXED={D:'#2b2a2c',S:'#d8a477',W:'#7a5532',B:'#6e4a32',G:'#4f5459',Z:'#a87a3c',Q:'#82b6da',X:'#9b2b24',C:'#efe6cf'};
+const CROWD=['#c0392b','#2e86c1','#f1c40f','#27ae60','#8e44ad','#e67e22','#ecf0f1','#34495e','#d35400','#16a085','#7f8c8d','#e84393'];
+
+// ---------- the six battles
+// helpers available in build(B): B.ll(lat,lon)->[x,z], B.ground(x,z), B.water(x,z), B.coastZ(x), B.box(...), B.timed(...),
+// B.group({...}), B.fx({...}), B.smoke(x,z,t0), B.wallLine(...), B.label
+const SITES={
+alamein:{title:'El Alamein',dur:17,yaw:0,pitch:.86,dist:74,target:[0,0,14],us:2,ground:'desert',
+ teams:[{name:'Allies',T:'#3d72e8',K:'#c9b58a',H:'#a8946a',L:'#9c8a62'},{name:'Axis',T:'#d63a2f',K:'#a39c78',H:'#85805f',L:'#7f7a5f'}],
+ caps:[[0,'OCT 1942',"At El Alamein, Montgomery's Eighth Army attacks Rommel's line."],[8.5,'NOV 1942',"After twelve days of fighting the Axis line breaks. Rommel retreats west and never returns to Egypt."]],
+ build(B){const L=B.ll(30.832,28.956);B.label=[L[0],L[1]];
+  const rail=[];for(let x=-56;x<=56;x++)rail.push([x,B.coastZ(x)+7]);B.rails(rail);
+  B.mines(-8,-56,5,56,520);
+  for(const z of[0,10,20,30,40,50])B.sandbags(-13,z,7);
+  B.group({m:'tank',team:0,w:4,d:3,sp:6,ax:'z',path:[[0,30,14],[2.5,30,14],[9.5,2,14],[16.5,-36,12]],fire:1.4});
+  B.group({m:'tank',team:0,w:4,d:2,sp:6,ax:'z',path:[[0,34,38],[3,34,38],[10,4,38],[16.5,-30,36]],fire:1.4});
+  B.group({m:'soldier',team:0,w:14,d:4,sp:1.5,ax:'z',path:[[0,42,24],[3,42,24],[11,10,24],[16.5,-20,24]],fire:2});
+  B.group({m:'gun',team:0,w:7,d:1,sp:5,ax:'z',path:[[0,48,26]],fire:1.6});
+  B.group({m:'tank',team:1,w:3,d:2,sp:6,ax:'z',face:0,path:[[0,-18,12],[9,-18,12],[12,-40,10],[16.5,-64,8]],fire:1.2,thin:[8,15,.5]});
+  B.group({m:'gun',team:1,w:6,d:1,sp:7,ax:'z',face:0,path:[[0,-11,26]],fire:1.5,thin:[7,11,.7]});
+  B.group({m:'soldier',team:1,w:12,d:3,sp:1.5,ax:'z',face:0,path:[[0,-15,36],[9.5,-15,36],[16.5,-50,32]],fire:2,thin:[8,15,.45]});
+  B.group({m:'plane',team:0,w:2,d:2,sp:8,ax:'z',alt:28,path:[[1.5,80,-6],[8.5,-80,-14]]});
+  B.group({m:'plane',team:0,w:2,d:1,sp:9,ax:'z',alt:31,path:[[9,80,26],[16,-80,18]]});
+  B.group({m:'plane',team:1,w:2,d:1,sp:8,ax:'z',alt:24,path:[[.5,-80,34],[7,80,40]]});
+  B.fx({t:[1,11],rate:3.6,box:[-20,-6,8,54],size:1.3,kind:'dust'});B.fx({t:[10,17],rate:3,box:[-46,0,-18,52],size:1.2,kind:'dust'});
+  [[-4,14],[8,30],[-15,22],[2,46],[-30,40]].forEach((p,i)=>B.smoke(p[0],p[1],i<3?0:10));B.wreck(-4,14);B.wreck(8,30,0);B.wreck(-15,22,1)}},
+normandy:{title:'Omaha Beach',dur:16,yaw:Math.PI,pitch:.8,dist:72,target:[0,0,-20],us:1.7,ground:'coastfarm',
+ teams:[{name:'Allies',T:'#3d72e8',K:'#6d6a45',H:'#5b5a3c',L:'#5b583a'},{name:'Germany',T:'#d63a2f',K:'#6e7168',H:'#555a55',L:'#55584f'}],
+ caps:[[0,'6 JUN 1944',"D-Day. Allied troops storm the beaches of Normandy."],[8,'6 JUN 1944',"By nightfall more than 150,000 soldiers are ashore. The liberation of Western Europe has begun."]],
+ build(B){const c=B.cAvg;B.label=[0,c+2];
+  for(let x=-54;x<=54;x+=3)for(let k=-3;k<=0;k+=1.5)if(h1(x*3+k)<.6)B.hedgehog(x+h1(x+k)*2,B.coastZ(x)+k);
+  for(let x=-50;x<=50;x+=13)B.bunker(x,B.coastZ(x)+8);
+  B.group({m:'warship',team:0,w:4,d:1,sp:26,ax:'x',face:Math.PI/2,path:[[0,0,c-30]],fire:.5,K:'#7d8590',sea:true});
+  B.group({m:'lcvp',team:0,w:11,d:2,sp:8,ax:'x',face:-Math.PI/2,path:[[0,0,-62],[1,0,-62],[6,0,c-2.5]],sea:true});
+  B.group({m:'soldier',team:0,w:34,d:3,sp:2.6,ax:'x',face:-Math.PI/2,path:[[6,0,c],[9,0,c+4],[16,0,c+13]],appear:[5.8,7],thin:[6,11,.25],fire:2});
+  B.group({m:'soldier',team:1,w:20,d:1,sp:5,ax:'x',face:Math.PI/2,path:[[0,0,c+9.5]],fire:3,thin:[8,14,.85]});
+  B.group({m:'plane',team:0,w:3,d:2,sp:9,ax:'x',alt:32,path:[[.5,-22,-90],[6,-22,90]]});
+  B.group({m:'plane',team:0,w:3,d:2,sp:9,ax:'x',alt:35,path:[[6,24,-90],[12,24,90]]});
+  B.fx({t:[0,7],rate:4,box:[-54,c+6,54,c+15],size:1.5,kind:'earth'});B.fx({t:[5,15],rate:3,box:[-54,c-2,54,c+4],size:1.1,kind:'earth'});B.fx({t:[2,8],rate:2,box:[-54,c-30,54,c-6],size:1,kind:'splash'});
+  B.smoke(-30,c+9,3);B.smoke(12,c+8,6);B.smoke(36,c+10,9)}},
+marne:{title:'River Marne',dur:16,yaw:0,pitch:.86,dist:80,target:[-4,0,6],us:1.8,ground:'farm',river:true,
+ teams:[{name:'France & Britain',T:'#3d72e8',K:'#3f5296',H:'#3f5296',L:'#b8352d'},{name:'Germany',T:'#d63a2f',K:'#7a7c68',H:'#5f604f',L:'#6a6b5a'}],
+ caps:[[0,'SEP 1914',"German armies close in on Paris. The city's taxis rush French reinforcements to the front."],[8,'SEP 1914',"At the Marne the Germans are stopped and pull back. Both sides dig in, and the trench war begins."]],
+ build(B){const r=B.riverZ(0);B.label=[0,r];
+  B.road([[-56,24],[-24,22],[0,25],[30,21],[56,23]]);
+  [[-47,0],[21,4],[-20,-30],[34,-26],[-34,34],[8,40]].forEach(v=>B.village(v[0],v[1]));
+  for(let i=0;i<14;i++)B.copse(-50+h1(i)*100,-50+h1(i+40)*100);
+  B.group({m:'taxi',team:0,w:1,d:12,sp:3.2,ax:'z',path:[[0,-78,23],[.5,-78,23],[7,-14,23]]});
+  B.group({m:'soldier',team:0,w:12,d:2,sp:1.6,ax:'x',face:-Math.PI/2,path:[[7,-14,20],[9,-14,14],[13,-12,2]],appear:[7,8.5],fire:2});
+  B.group({m:'soldier',team:0,w:14,d:3,sp:1.7,ax:'x',face:-Math.PI/2,path:[[0,-30,28],[5,-30,28],[11,-28,4],[16,-26,-8]],fire:2,thin:[4,10,.2]});
+  B.group({m:'soldier',team:0,w:14,d:3,sp:1.7,ax:'x',face:-Math.PI/2,path:[[0,22,32],[5,22,32],[11,24,8],[16,26,-6]],fire:2,thin:[4,10,.2]});
+  B.group({m:'gun',team:0,w:6,d:1,sp:4.5,ax:'x',face:-Math.PI/2,path:[[0,0,42]],fire:1.6});
+  B.group({m:'soldier',team:1,w:16,d:3,sp:1.7,ax:'x',face:Math.PI/2,path:[[0,-6,-50],[.5,-6,-50],[6,-8,-14],[10,-8,-14],[16,-6,-44]],fire:2,thin:[9,16,.35]});
+  B.group({m:'soldier',team:1,w:14,d:3,sp:1.7,ax:'x',face:Math.PI/2,path:[[0,34,-52],[.5,34,-52],[6,30,-12],[10,30,-12],[16,32,-42]],fire:2,thin:[9,16,.35]});
+  B.group({m:'gun',team:1,w:6,d:1,sp:5,ax:'x',face:Math.PI/2,path:[[0,10,-48]],fire:1.4});
+  B.trench(-56,-40,56,-40,10.5,0);B.trench(-56,-30,56,-30,12,1);
+  B.fx({t:[3,13],rate:3.2,box:[-44,-22,50,14],size:1.1,kind:'earth'})}},
+constantinople:{title:'Constantinople',dur:17,yaw:-1.2,pitch:.84,dist:82,target:[-2,0,4],us:1.5,ground:'city',
+ teams:[{name:'Byzantines',T:'#8a4fd0',K:'#6f4fa8',H:'#b9b2a0',L:'#4b3a5f'},{name:'Ottomans',T:'#d63a2f',K:'#b8352a',H:'#f1ece0',L:'#7a2a22'}],
+ caps:[[0,'APR 1453',"Sultan Mehmed II besieges Constantinople. Giant bombards pound the ancient walls."],[8.5,'29 MAY 1453',"The walls are breached and the city falls. The Byzantine Empire ends after more than a thousand years."]],
+ build(B){const W=[[41.0395,28.9447],[41.0320,28.9380],[41.0200,28.9262],[41.0080,28.9232],[40.9945,28.9228]].map(p=>B.ll(p[0],p[1]));
+  B.label=B.ll(41.012,28.966);
+  B.theodosian(W);
+  B.cityFill(W);
+  const hs=B.ll(41.0086,28.9802);B.hagia(hs[0],hs[1]);const gt=B.ll(41.0256,28.9741);B.tower(gt[0],gt[1]);
+  B.camp(W);
+  const br=B.ll(41.0195,28.9262);
+  B.group({m:'bombard',team:1,along:W,off:7.5,n:7,fire:.55,face:0});
+  B.group({m:'soldier',team:1,w:10,d:5,sp:1.4,ax:'z',face:0,path:[[0,br[0]-16,br[1]-10],[8.5,br[0]-16,br[1]-10],[11,br[0]-1,br[1]],[13.5,br[0]+9,br[1]+1],[17,br[0]+24,br[1]+3]],fire:1});
+  B.group({m:'soldier',team:1,w:10,d:5,sp:1.4,ax:'z',face:0,path:[[0,br[0]-18,br[1]+12],[9,br[0]-18,br[1]+12],[11.5,br[0]-2,br[1]+1],[14,br[0]+8,br[1]+2],[17,br[0]+20,br[1]+8]]});
+  B.group({m:'soldier',team:1,w:8,d:4,sp:1.4,ax:'z',face:0,path:[[0,br[0]-20,br[1]-26],[9.5,br[0]-20,br[1]-26],[12,br[0]-3,br[1]-2],[15,br[0]+10,br[1]-4],[17,br[0]+18,br[1]-10]]});
+  B.group({m:'soldier',team:0,along:W,off:.2,n:44,onWall:true,face:Math.PI,fire:.8,thin:[9.5,12.5,.92]});
+  const gh=B.ll(41.0335,28.9575);B.group({m:'galley',team:1,w:4,d:2,sp:6,ax:'x',face:.5,path:[[0,gh[0],gh[1]],[17,gh[0]+3,gh[1]-1.5]],sea:true});
+  B.fx({t:[.5,11],rate:3,line:W,spread:2.5,size:1.3,kind:'stone'});
+  B.smoke(br[0]+10,br[1]+2,12);B.smoke(br[0]+18,br[1]-6,13.5);B.smoke(hs[0]-12,hs[1]-10,15)}},
+gaugamela:{title:'Gaugamela',dur:17,yaw:.15,pitch:.88,dist:74,target:[6,0,2],us:1.5,ground:'steppe',
+ teams:[{name:'Macedonians',T:'#3d72e8',K:'#2f5bb8',H:'#c79a3c',L:'#7a5a3a'},{name:'Persians',T:'#d63a2f',K:'#b8342a',H:'#e0c070',L:'#6b3a2a'}],
+ caps:[[0,'1 OCT 331 BCE',"At Gaugamela, Alexander's army of about 47,000 faces the far larger host of Darius III."],[8.5,'1 OCT 331 BCE',"Alexander's cavalry charges a gap in the Persian line. Darius flees, and the Persian Empire falls."]],
+ build(B){B.label=[2,-30];
+  B.group({m:'chariot',team:1,w:12,d:1,sp:4,ax:'z',face:Math.PI,path:[[0,14,0],[2,14,0],[5,-7,0]],thin:[4.3,6,.95]});
+  B.group({m:'soldier',team:1,w:34,d:6,sp:1.25,ax:'z',face:Math.PI,path:[[0,24,0],[10.5,23,0],[17,64,-4]],thin:[11,17,.45]});
+  B.group({m:'horse',team:1,w:10,d:3,sp:2,ax:'z',face:Math.PI,path:[[0,20,-32],[3,20,-32],[8,2,-36],[17,10,-40]]});
+  B.group({m:'horse',team:1,w:10,d:3,sp:2,ax:'z',face:Math.PI,path:[[0,20,32],[2,20,32],[7,-2,40],[12,8,40],[17,40,44]],thin:[11,17,.5]});
+  B.group({m:'chariot',team:1,w:1,d:1,sp:1,ax:'z',face:Math.PI,path:[[0,32,0],[10.2,32,0],[13,74,-8]],gold:true});
+  B.group({m:'pike',team:0,w:26,d:8,sp:1.05,ax:'z',face:0,path:[[0,-17,0],[3,-17,0],[9,3,0],[17,13,0]]});
+  B.group({m:'horse',team:0,w:8,d:3,sp:2,ax:'z',face:0,path:[[0,-15,22],[4,-15,22],[8,8,31],[10.5,16,7],[13,27,0],[17,44,-2]]});
+  B.group({m:'horse',team:0,w:8,d:3,sp:2,ax:'z',face:0,path:[[0,-15,-26],[6,-12,-28],[17,-6,-32]]});
+  B.fx({t:[4,15],rate:3,box:[-10,-38,28,40],size:1.2,kind:'dust'});B.fx({t:[10,17],rate:2,box:[20,-12,48,10],size:1.3,kind:'dust'})}},
+berlin:{title:'Brandenburg Gate',dur:16,yaw:-1.45,pitch:.82,dist:68,target:[0,0,0],us:1.4,ground:'city',flat:14,
+ teams:[{name:'Crowds',T:'#f2c94c',crowd:true},{name:'East German guards',T:'#d63a2f',K:'#5d6648',H:'#4c533b',L:'#4c533b'}],legendExtra:[['The Wall','#e8e4d8']],
+ caps:[[0,'9 NOV 1989',"The Berlin Wall opens. Crowds pour across and climb onto the Wall at the Brandenburg Gate."],[8.5,'3 OCT 1990',"Germany reunifies. Within two years the Soviet Union is gone and the Cold War is over."]],
+ build(B){const W=[[52.5240,13.3772],[52.5190,13.3768],[52.5168,13.3762],[52.5150,13.3767],[52.5100,13.3765],[52.5088,13.3830],[52.5070,13.3920]].map(p=>B.ll(p[0],p[1]));
+  const gate=B.ll(52.51628,13.37770);B.label=[gate[0],gate[1]];
+  B.berlinCity(W,gate);B.gate(gate[0],gate[1]);const rt=B.ll(52.5186,13.3761);B.reichstag(rt[0]-3,rt[1]);
+  B.berlinWall(W,gate);
+  B.group({m:'person',team:0,scatter:[9,14],n:300,path:[[0,gate[0]-12,gate[1]],[8,gate[0]-9,gate[1]],[14,gate[0]-3,gate[1]]],appear:[0,6]});
+  B.group({m:'person',team:0,scatter:[8,12],n:240,path:[[0,gate[0]+11,gate[1]],[8,gate[0]+9,gate[1]],[14,gate[0]+3,gate[1]]],appear:[2,8]});
+  B.group({m:'person',team:0,along:W.slice(1,4),off:0,n:110,onWall:true,appear:[7.5,11.5]});
+  B.group({m:'soldier',team:1,along:W,off:-3.2,n:16,face:Math.PI,thin:[6,10,.85]});
+  B.fx({t:[9,16],rate:3.2,box:[gate[0]-22,gate[1]-26,gate[0]+22,gate[1]+26],alt:[16,30],size:1.4,kind:'firework'})}},
+};
+
+// ---------- build a site
+function buildSite(key){
+ const S=SITES[key],D=SD[key],G=D.g,E=D.E,half=G/2;
+ const idx=(i,j)=>j*G+i;
+ const isW=new Uint8Array(G*G);let landE=[];
+ for(let k=0;k<G*G;k++){if(E[k]<=0&&!S.flat&&key!=='marne'&&key!=='gaugamela')isW[k]=1;else landE.push(E[k])}
+ landE.sort((a,b)=>a-b);const lo=landE[Math.floor(landE.length*.02)]||0,hi=landE[Math.floor(landE.length*.98)]||1;
+ const mpl=Math.max(S.flat?S.flat:2.5,(hi-lo)/11);
+ const Hh=new Int16Array(G*G);for(let k=0;k<G*G;k++)Hh[k]=isW[k]?0:Math.max(1,Math.min(14,1+Math.round((E[k]-lo)/mpl)));
+ // river: follow the real valley floor (lowest elevation per column within the middle band)
+ let rz=null;if(S.river){rz=new Float32Array(G);let prevJ=-1;for(let i=0;i<G;i++){let best=1e9,bj=0;for(let j=20;j<G-20;j++){const pen=prevJ<0?0:Math.abs(j-prevJ)*6;const v=E[idx(i,j)]+pen;if(v<best){best=v;bj=j}}prevJ=bj;rz[i]=bj}
+   for(let p=0;p<3;p++)for(let i=1;i<G-1;i++)rz[i]=(rz[i-1]+rz[i]*2+rz[i+1])/4;
+   for(let i=0;i<G;i++){const j0=Math.round(rz[i]);for(let j=j0-1;j<=j0+1;j++)if(j>=0&&j<G){isW[idx(i,j)]=1;Hh[idx(i,j)]=0}}}
+ const water=(i,j)=>i<0||j<0||i>=G||j>=G?0:isW[idx(i,j)];
+ const ci=x=>Math.max(0,Math.min(G-1,Math.floor(x+half))),toX=i=>i-half+.5;
+ const ground=(x,z)=>{const k=idx(ci(x),ci(z));return isW[k]?.7:Hh[k]};
+ const coastZ=x=>{const i=ci(x);for(let j=0;j<G;j++)if(!isW[idx(i,j)])return toX(j);return 0};
+ let cs=0;for(let x=-50;x<=50;x+=5)cs+=coastZ(x);const cAvg=cs/21;
+ const ll=(lat,lon)=>[(lon-D.lon)*111.32*Math.cos(D.lat*Math.PI/180)/D.km*G,-(lat-D.lat)*111.32/D.km*G];
+ const pal=GROUND[S.ground];
+ // terrain columns
+ for(let j=0;j<G;j++)for(let i=0;i<G;i++){const k=idx(i,j),x=toX(i),z=toX(j);let near=false;
+   if(!isW[k])for(let dj=-2;dj<=2&&!near;dj++)for(let di=-2;di<=2;di++)if(water(i+di,j+dj)){near=true;break}
+   const slope=Math.abs(Hh[k]-Hh[idx(Math.min(G-1,i+1),j)])+Math.abs(Hh[k]-Hh[idx(i,Math.min(G-1,j+1))]);
+   const [top,body]=isW[k]?(E[k]>-8||S.river?['#3a82c0','#c9b27a']:['#2b66a6','#c9b27a']):pal(i,j,{h:Hh[k],e:E[k],near:near&&E[k]<8,slope});
+   const ty=isW[k]?.7:Hh[k],v=.93+h2(i,j)*.12;
+   const tc=C3(top).clone().multiplyScalar(v);
+   _p.set(x,ty-1,z);_s.set(1,1,1);_m.compose(_p,_q0,_s);tTop.setMatrixAt(k,_m);tTop.setColorAt(k,tc);
+   _p.set(x,-6,z);_s.set(1,ty-1+6,1);_m.compose(_p,_q0,_s);tBody.setMatrixAt(k,_m);tBody.setColorAt(k,C3(body))}
+ tTop.count=tBody.count=G*G;
+ let np=0;const PB=[];const TIMED=[];const groups=[],fxs=[],smokes=[];
+ const B={ll,ground,coastZ,cAvg,G,water:(x,z)=>water(ci(x),ci(z)),
+  box:(x,y,z,sx,sy,sz,c)=>{if(np<36000)putBox(props,np++,x,y,z,sx,sy,sz,c)},
+  timed:(t0,t1,x,y,z,sx,sy,sz,c)=>TIMED.push([t0,t1,x,y,z,sx,sy,sz,c]),
+  group:g=>groups.push(g),fx:f=>fxs.push(f),smoke:(x,z,t0=0)=>smokes.push([x,z,t0]),
+  riverZ:x=>rz?toX(Math.round(rz[ci(x)])):0};
+ Object.assign(B,PROPS(B));
+ S.build(B);props.count=np;
+ // precompute explosion events
+ const ev=[];const rnd=mul32(key.length*977+13);
+ for(const f of fxs){const n=Math.round((f.t[1]-f.t[0])*f.rate);for(let e=0;e<n;e++){let x,z;
+   if(f.line){const s=Math.floor(rnd()*(f.line.length-1)),a=f.line[s],b=f.line[s+1],q=rnd();x=a[0]+(b[0]-a[0])*q+(rnd()-.5)*f.spread*2;z=a[1]+(b[1]-a[1])*q+(rnd()-.5)*f.spread*2}
+   else{x=f.box[0]+rnd()*(f.box[2]-f.box[0]);z=f.box[1]+rnd()*(f.box[3]-f.box[1])}
+   const y=f.alt?f.alt[0]+rnd()*(f.alt[1]-f.alt[0]):ground(x,z);
+   if(f.kind==='splash'&&!B.water(x,z))continue;
+   ev.push({t:f.t[0]+rnd()*(f.t[1]-f.t[0]),x,y,z,s:f.size*(.7+rnd()*.6),kind:f.kind,seed:rnd()*1000})}}
+ // resolve group positions/formations
+ for(const g of groups){const n=g.n||(g.w*g.d);g.off=[];g.N=n;
+   if(g.along){const P=g.along;let len=0;const seg=[];for(let s=0;s<P.length-1;s++){const l=Math.hypot(P[s+1][0]-P[s][0],P[s+1][1]-P[s][1]);seg.push(l);len+=l}
+     g.fixed=[];for(let u=0;u<n;u++){let d=(u+.5)/n*len,s=0;while(s<seg.length-1&&d>seg[s]){d-=seg[s];s++}const a=P[s],b=P[s+1],q=Math.min(1,d/seg[s]);
+       const dx=b[0]-a[0],dz=b[1]-a[1],L=Math.hypot(dx,dz)||1;g.fixed.push([a[0]+dx*q+(dz/L)*(g.off||0)*-1,a[1]+dz*q+(-dx/L)*(g.off||0)*-1])}
+     // offset to the west/left of travel direction (walls run north->south, so -x is outside)
+     g.fixed=g.fixed.map((p,u)=>{const a=P[0],b=P[P.length-1];return p});
+     g.off=g.fixed.map(()=>[0,0])}
+   else if(g.scatter){for(let u=0;u<n;u++){const a=h1(u*3.1+n)*Math.PI*2,r=Math.sqrt(h1(u*7.7+1));g.off.push([Math.cos(a)*r*g.scatter[0],Math.sin(a)*r*g.scatter[1]])}}
+   else for(let a=0;a<g.d;a++)for(let b=0;b<g.w;b++){const jx=(h2(a+g.w,b)-.5)*g.sp*.3,jz=(h2(b,a+3)-.5)*g.sp*.3;const fa=(b-(g.w-1)/2)*g.sp,da=(a-(g.d-1)/2)*g.sp;g.off.push(g.ax==='z'?[da+jx,fa+jz]:[fa+jx,da+jz])}
+   if(g.along&&g.off!==undefined){}}
+ dio.site={key,S,G,ground,water:B.water,groups,ev,smokes,TIMED,label:B.label||[0,0],np};
+ dio.key=key;
+}
+// Theodosian walls and other structures need side offsets; done in PROPS via perpendiculars.
+function perp(P,s){const a=P[s],b=P[s+1],dx=b[0]-a[0],dz=b[1]-a[1],L=Math.hypot(dx,dz)||1;return[-dz/L,dx/L]}  // points to the right of travel (west for N->S lines? see below)
+function walkLine(P,step,fn){for(let s=0;s<P.length-1;s++){const a=P[s],b=P[s+1],L=Math.hypot(b[0]-a[0],b[1]-a[1]);for(let d=0;d<L;d+=step){const q=d/L;fn(a[0]+(b[0]-a[0])*q,a[1]+(b[1]-a[1])*q,s)}}}
+// side of a polyline: >0 east/right of a north->south line
+function sideOf(P,x,z){let best=1e9,sd=0;for(let s=0;s<P.length-1;s++){const a=P[s],b=P[s+1],dx=b[0]-a[0],dz=b[1]-a[1],L2=dx*dx+dz*dz;let q=((x-a[0])*dx+(z-a[1])*dz)/L2;q=Math.max(0,Math.min(1,q));const px=a[0]+dx*q,pz=a[1]+dz*q,d=Math.hypot(x-px,z-pz);if(d<best){best=d;sd=Math.sign(dx*(z-a[1])-dz*(x-a[0]))}}return[sd,best]}
+
+const GROUND={
+ desert:(i,j,c)=>c.near?['#e8dcae','#cdb886']:c.slope>2?['#b9a073','#a88f62']:[['#dccb94','#d3c088','#e2d3a0','#cbb57d'][Math.floor(h2(Math.floor(i/5)+.3,Math.floor(j/4)+.7)*4)],'#bba06c'],
+ steppe:(i,j,c)=>c.h>8?['#93897a','#7d7468']:[['#bcae6c','#ab9f5f','#c6b97c','#a39758'][Math.floor(h2(Math.floor(i/6),Math.floor(j/5))*4)],'#8d7652'],
+ farm:(i,j,c)=>{if(i%8===0||j%6===0)return['#55763a','#76583a'];return[['#7ea24a','#93b356','#cdb862','#6f9441','#a7b860','#b9a35a'][Math.floor(h2(Math.floor(i/8),Math.floor(j/6))*6)],'#76583a']},
+ coastfarm:(i,j,c)=>c.near?['#e3d4a2','#cbb686']:(i%9===0||j%7===0)?['#4f7036','#76583a']:[['#76a046','#8bb052','#6c9440','#9cb85a'][Math.floor(h2(Math.floor(i/9),Math.floor(j/7))*4)],'#76583a'],
+ city:(i,j,c)=>c.near?['#d9cba0','#bba98a']:['#a99f8e','#8b7e6c'],
+};
+
+// ---------- structure helpers
+function PROPS(B){const box=B.box,g=B.ground;return{
+ rails(P){P.forEach(([x,z],k)=>{const y=g(x,z);box(x,y,z,.18,.12,1.2,'#5a4632');if(k%2==0){box(x,y+.12,z-.35,1,.1,.1,'#6b6b6b');box(x,y+.12,z+.35,1,.1,.1,'#6b6b6b')}})},
+ mines(x0,z0,x1,z1,n){for(let k=0;k<n;k++){const x=x0+h1(k*1.7)*(x1-x0),z=z0+h1(k*2.3+5)*(z1-z0);if(B.water(x,z))continue;box(x,g(x,z),z,.22,.08,.22,'#3a352c')}},
+ sandbags(x,z,len){for(let k=0;k<len;k++)box(x,g(x,z+k),z+k,.8,.45,1,'#b9a679')},
+ wreck(x,z,team){const y=g(x,z);box(x,y,z,2.2,.6,1.3,'#3b3633');box(x-.2,y+.6,z,1,.4,.9,'#2c2827')},
+ hedgehog(x,z){const y=B.water(x,z)?.7:g(x,z);box(x,y-.4,z,1,.2,.2,'#2c2a2a');box(x,y-.4,z,.2,1,.2,'#2c2a2a');box(x,y-.4,z,.2,.2,1,'#2c2a2a')},
+ bunker(x,z){const y=g(x,z);box(x,y,z,3.2,1.6,2.6,'#9a9a92');box(x,y+1.6,z,3.4,.3,2.8,'#85857d');box(x,y+.9,z-1.31,2,.3,.05,'#1d1d1d')},
+ road(P){walkLine(P,.5,(x,z)=>{const y=g(x,z);box(x,y-.95,z,1,1,1.4,'#b6a57e')})},
+ village(cx,cz){for(let k=0;k<14;k++){const x=cx+(h1(k+cx)-.5)*12,z=cz+(h1(k*3+cz)-.5)*9;if(B.water(x,z))continue;const y=g(x,z),hh=1+Math.floor(h1(k*7+cx)*2);box(x,y,z,1.6,hh,1.4,'#e8dfcc');box(x,y+hh,z,1.8,.5,1.6,h1(k)>.5?'#6d6f78':'#a9503a')}
+   const y=g(cx,cz);box(cx,y,cz,1.4,4,1.4,'#ddd3bd');box(cx,y+4,cz,.8,1.4,.8,'#5f6169')},
+ copse(cx,cz){for(let k=0;k<12;k++){const x=cx+(h1(k+cx)-.5)*7,z=cz+(h1(k*5+cz)-.5)*6;if(B.water(x,z))continue;const y=g(x,z);box(x,y,z,.3,1,.3,'#5a4030');box(x,y+1,z,1.6,1.4,1.6,h1(k*2)>.5?'#3f6b2f':'#4d7d36')}},
+ trench(x0,z0,x1,z1,t0,team){const n=Math.hypot(x1-x0,z1-z0);for(let d=0;d<n;d+=1){const q=d/n,x=x0+(x1-x0)*q,z=z0+(z1-z0)*q+((Math.floor(d/4)%2)?1.4:0);if(B.water(x,z))continue;const y=g(x,z);B.timed(t0+q*2.5,99,x,y-.05,z,1.05,.15,1,'#4a3a2c');B.timed(t0+q*2.5,99,x,y,z-.75,1.05,.4,.4,'#8a7552')}},
+ theodosian(W){walkLine(W,.8,(x,z,s)=>{const p=perp(W,s);const y=g(x,z);box(x,y,z,1.2,3.6,1.2,'#d5c9aa');
+     box(x+p[0]*2.4,g(x+p[0]*2.4,z+p[1]*2.4),z+p[1]*2.4,.9,2,.9,'#c9bc9b');box(x+p[0]*4.6,g(x+p[0]*4.6,z+p[1]*4.6)-.8,z+p[1]*4.6,1.4,.9,1.4,'#3f6b7d')});
+   let k=0;walkLine(W,5.5,(x,z)=>{const y=g(x,z);box(x,y,z,2.2,5,2.2,'#cbbd9c');for(let c=0;c<4;c++)box(x+(c%2?.8:-.8),y+5,z+(c<2?.8:-.8),.5,.5,.5,'#cbbd9c');k++})},
+ cityFill(W){const G=B.G;for(let j=0;j<G;j++)for(let i=0;i<G;i++){const x=i-G/2+.5,z=j-G/2+.5;if(B.water(x,z))continue;const[sd,d]=sideOf(W,x,z);if(sd>=0||d<3)continue;
+   if(i%5===0||j%4===0)continue;if(h2(i,j)>.5)continue;const y=g(x,z),hh=1+Math.floor(h2(j,i)*2.2);box(x,y,z,.9,hh*.8,.9,h2(i+1,j)>.3?'#e6dccb':'#d1bfa0');box(x,y+hh*.8,z,1,.35,1,h2(i,j+1)>.25?'#b5563a':'#8c5a40')}},
+ camp(W){for(let k=0;k<160;k++){const x=-56+h1(k*1.3)*50,z=-56+h1(k*2.9)*112;const[sd,d]=sideOf(W,x,z);if(sd<=0||d<9||B.water(x,z))continue;const y=g(x,z);box(x,y,z,1.1,.6,1,h1(k*5)>.5?'#efe6cf':'#c94b3a');box(x,y+.6,z,.6,.35,.9,'#efe6cf')}},
+ hagia(x,z){const y=g(x,z);box(x,y,z,8,3,7,'#d9c4a0');box(x,y+3,z,6,1,5.5,'#cdb894');box(x,y+4,z,4.6,1,4.6,'#8d939b');box(x,y+5,z,3.4,.8,3.4,'#8d939b');box(x,y+5.8,z,2,.6,2,'#8d939b');box(x+3.2,y+3,z,1.6,1.2,3,'#8d939b');box(x-3.2,y+3,z,1.6,1.2,3,'#8d939b')},
+ tower(x,z){const y=g(x,z);box(x,y,z,1.8,7,1.8,'#cbbd9c');box(x,y+7,z,2.1,.5,2.1,'#bdae8c');box(x,y+7.5,z,1.3,1.4,1.3,'#5a5f66');box(x,y+8.9,z,.6,.8,.6,'#5a5f66')},
+ berlinCity(W,gate){const G=B.G;for(let j=0;j<G;j++)for(let i=0;i<G;i++){const x=i-G/2+.5,z=j-G/2+.5;const[sd,d]=sideOf(W,x,z);const y=g(x,z);
+   const east=sd<0;if(east&&d<5.5){box(x,y-.95,z,1,1,1,'#d8c9a0');continue}  // death strip
+   if(Math.hypot(x-gate[0],z-gate[1])<5)continue;
+   const park=!east&&x<gate[0]-3&&z>gate[1]-14&&z<gate[1]+22;
+   if(park){if(h2(i,j)<.45){box(x,y,z,.3,.9,.3,'#5a4030');box(x,y+.9,z,1.4,1.3,1.4,h2(j,i)>.5?'#3f6b2f':'#4f7f38')}continue}
+   if(i%7===0||j%6===0){box(x,y-.96,z,1,1,1,'#55575c');continue}
+   if(h2(i,j)>.78)continue;const hh=(east?2+Math.floor(h2(j,i)*2.5):1+Math.floor(h2(j,i)*2.5))*.85;
+   box(x,y,z,1,hh,1,east?['#a7a59d','#b5b2a8','#9c9a92'][Math.floor(h2(i+2,j)*3)]:['#d8c7a8','#c9b49a','#e0d5c0','#bfa98f','#cdb8a4'][Math.floor(h2(i+2,j)*5)]);box(x,y+hh,z,1,.2,1,east?'#7d7c77':'#7b4a3a')}},
+ gate(x,z){const y=g(x,z);for(let c=0;c<6;c++)box(x,y,z-3+c*1.2,.7,3,.7,'#ddcfa6');box(x,y+3,z,1.6,1.3,7.6,'#d5c69c');box(x,y+4.3,z,.9,.8,1.6,'#3e6b55')},
+ reichstag(x,z){const y=g(x,z);box(x,y,z,6,3,9,'#cdbf9e');for(const dz of[-4,4])for(const dx of[-2.6,2.6])box(x+dx,y,z+dz,1.4,3.8,1.4,'#c3b493')},
+ berlinWall(W,gate){walkLine(W,.5,(x,z,s)=>{const near=Math.hypot(x-gate[0],z-gate[1])<4.5;const y=g(x,z);if(near)B.timed(0,11.5+h1(x*9+z)*1.5,x,y,z,.6,1.8,.6,'#e8e4d8');else box(x,y,z,.6,1.8,.6,'#e8e4d8');
+   const p=perp(W,s);const ix=x-p[0]*4.6,iz=z-p[1]*4.6;box(ix,g(ix,iz),iz,.5,1.3,.5,'#cfcabd')});
+   let k=0;walkLine(W,9,(x,z,s)=>{const p=perp(W,s);const ix=x-p[0]*2.4,iz=z-p[1]*2.4;const y=g(ix,iz);box(ix,y,iz,.8,3.2,.8,'#bdb8ab');box(ix,y+3.2,iz,1.3,.8,1.3,'#8d8a80')})},
+}}
+
+// ---------- per-frame animation
+function pathAt(P,u){if(u<=P[0][0])return[P[0][1],P[0][2]];for(let k=1;k<P.length;k++)if(u<=P[k][0]){const a=P[k-1],b=P[k],f=ssf(0,1,(u-a[0])/(b[0]-a[0]));return[a[1]+(b[1]-a[1])*f,a[2]+(b[2]-a[2])*f]}const l=P[P.length-1];return[l[1],l[2]]}
+function colorFor(key,team,ui,g){if(team.crowd){if(key==='P')return['#2f3d5c','#1f1f24','#5a4a3a'][Math.floor(h1(ui*1.3)*3)];if(key==='R')return CROWD[Math.floor(h1(ui*2.7)*CROWD.length)];if(key==='Y')return['#3a2a1e','#e8c66a','#6b4a2e','#1e1e1e'][Math.floor(h1(ui*5.1)*4)]}
+ if(key==='K'&&g.K)return g.K;if(g.gold&&(key==='K'||key==='T'))return'#e2b43c';return team[key]||FIXED[key]||'#ff00ff'}
+let nd=0;
+function dbox(x,y,z,sx,sy,sz,c,q){if(nd<14000)putBox(dyn,nd++,x,y,z,sx,sy,sz,c,q)}
+const PUFF={dust:['#ffd35a','#e8a050','#cdb788','#b8a27a'],earth:['#ffd35a','#f08a3a','#6f6458','#57514b'],stone:['#ffd35a','#f08a3a','#c9bea4','#a89f8a'],splash:['#ffffff','#e6f3ff','#d6ecfb','#c4e2f7'],firework:null};
+function updateDio(u){const st=dio.site,S=st.S;nd=0;
+ for(const g of st.groups){const team=S.teams[g.team],M=MOD[g.m];
+   const c0=g.path?pathAt(g.path,u):[0,0],c1=g.path?pathAt(g.path,u+.15):[0,0];const mv=Math.hypot(c1[0]-c0[0],c1[1]-c0[1]);
+   let yaw=g.face!==undefined?g.face:0;if(mv>.02)yaw=Math.atan2(-(c1[1]-c0[1]),c1[0]-c0[0]);
+   _q.setFromAxisAngle(_Y,yaw);const cs=Math.cos(yaw),sn=Math.sin(yaw),us=(S.us||1)*(g.alt?1.4:g.m==='warship'?1:1);
+   for(let ui=0;ui<g.N;ui++){const hv=h1(ui*1.618+g.N*.37+g.team);
+     if(g.thin&&hv<g.thin[2]*ssf(g.thin[0],g.thin[1],u))continue;
+     if(g.appear&&h1(ui*4.4+1.1)>ssf(g.appear[0],g.appear[1],u))continue;
+     let x,z;if(g.fixed){x=g.fixed[ui][0];z=g.fixed[ui][1]}else{x=c0[0]+g.off[ui][0];z=c0[1]+g.off[ui][1]}
+     if(g.scatter&&g.path){x+=Math.sin(u*.8+ui)*.25;z+=Math.cos(u*.7+ui*1.3)*.25}
+     if(x<-56||x>56||z<-56||z>56)continue;
+     let y;if(g.alt)y=g.alt+Math.sin(u*1.3+ui)*.4;else if(g.sea)y=.55;else{y=st.ground(x,z);if(g.onWall)y+=3.6*(S.title==='Brandenburg Gate'?.5:1)}
+     if(mv>.02&&!g.alt&&!g.sea&&(g.m==='soldier'||g.m==='pike'||g.m==='person'))y+=(Math.floor(u*8+ui)%2)*.06;
+     for(const b of M.b){const ox=(b[0]*cs+b[2]*sn)*us,oz=(-b[0]*sn+b[2]*cs)*us;dbox(x+ox,y+b[1]*us,z+oz,b[3]*us,b[4]*us,b[5]*us,colorFor(b[6],team,ui,g),_q)}
+     if(g.fire&&M.mz){const w=u*g.fire+hv*7;if(w-Math.floor(w)<.09){const m=M.mz;dbox(x+(m[0]*cs+m[2]*sn)*us,y+m[1]*us-.2,z+(-m[0]*sn+m[2]*cs)*us,.55*us,.45*us,.55*us,'#ffe27a')}}
+     else if(g.fire&&(g.m==='soldier')){const w=u*g.fire+hv*7;if(w-Math.floor(w)<.05)dbox(x+.5*cs*us,y+.4*us,z-.5*sn*us,.2*us,.2*us,.2*us,'#ffe27a')}}}
+ // explosions
+ for(const e of st.ev){const a=u-e.t;const dur=e.kind==='firework'?1.6:1.5;if(a<0||a>dur)continue;const r=mul32(e.seed|0);const cols=PUFF[e.kind];
+   const fc=e.kind==='firework'?CROWD[Math.floor(e.seed)%CROWD.length]:null;
+   for(let k=0;k<(e.kind==='firework'?14:9);k++){const dx=r()-.5,dy=r(),dz=r()-.5;
+     if(e.kind==='firework'){const L=Math.hypot(dx,dy-.5,dz)||1,sp=a*4*e.s;dbox(e.x+dx/L*sp,e.y+(dy-.5)/L*sp-a*a*1.2,e.z+dz/L*sp,.35*(1-a/dur)+.05,.35*(1-a/dur)+.05,.35*(1-a/dur)+.05,a<.2?'#fffbe6':fc);continue}
+     const sc=(a<.15?1.5:1.15*(1-a/dur))*e.s*(.5+r()*.6);const ci2=a<.12?0:a<.3?1:2+(k%2);
+     dbox(e.x+dx*(.6+a*2)*e.s,e.y+dy*.3+a*(e.kind==='splash'?1.2:2.4)*e.s*(.5+dy),e.z+dz*(.6+a*2)*e.s,sc,sc,sc,cols[ci2])}}
+ // smoke columns
+ for(const[sx,sz,t0]of st.smokes){if(u<t0)continue;const y0=st.ground(sx,sz);for(let k=0;k<7;k++){const a=((u-t0)*.35+k/7)%1;const s=.5+a*1.7;dbox(sx+Math.sin(k*2.1+u*.3)*a*1.5,y0+.5+a*11,sz+a*2,s*(1-a*.5),s*(1-a*.5),s*(1-a*.5),a<.15?'#4a4440':'#6b6764')}
+   if(u-t0<99)dbox(sx,y0,sz,.7,.5,.7,(Math.floor(u*10)%2)?'#ff9a3a':'#ffd35a')}
+ // structures that appear or disappear on cue (trenches dug, Wall pulled down)
+ for(const t of st.TIMED)if(u>=t[0]&&u<t[1])dbox(t[2],t[3],t[4],t[5],t[6],t[7],t[8]);
+ dyn.count=nd;dyn.instanceMatrix.needsUpdate=true;if(dyn.instanceColor)dyn.instanceColor.needsUpdate=true;
+ props.instanceMatrix.needsUpdate=tTop.instanceMatrix.needsUpdate=tBody.instanceMatrix.needsUpdate=dio.dirty;if(dio.dirty){props.instanceColor.needsUpdate=tTop.instanceColor.needsUpdate=tBody.instanceColor.needsUpdate=true;dio.dirty=false}
+ // camera: slow orbit and push-in, framed per site
+ const k=u/S.dur,yaw=S.yaw+(k-.5)*.3,pit=S.pitch-.05*k,dist=S.dist*(1.08-.14*k)*Math.max(1,1.25/dio.cam.aspect);
+ const t=S.target;dio.cam.position.set(t[0]+Math.sin(yaw)*Math.cos(pit)*dist,t[1]+Math.sin(pit)*dist,t[2]+Math.cos(yaw)*Math.cos(pit)*dist);dio.cam.lookAt(t[0],t[1],t[2]);
+}
+function ensureSite(key){if(dio.key!==key){buildSite(key);dio.dirty=true}}
+
+// ---------------- the tour: [year, lat, lon, caption, battlefield?]
 const TOUR=[
  [-3000,30,38,"c. 3000 BCE. Cities and kingdoms rise along the Nile and in Mesopotamia."],
  [-2300,32,44,"Sargon of Akkad unites Mesopotamia into one of history's first empires."],
  [-1500,31,34,"Egypt's New Kingdom and the Hittites compete for the Near East."],
  [-1000,34,110,"In China, the Zhou dynasty claims the Mandate of Heaven."],
  [-500,32,55,"Persia's Achaemenid Empire stretches from Egypt to the Indus."],
- [-323,33,48,"Alexander the Great dies in Babylon. His generals split his empire."],
+ [-331,36.57,43.43,"Alexander the Great marches on the heart of the Persian Empire.","gaugamela"],
  [-250,24,80,"Under Ashoka, the Maurya Empire spans most of South Asia."],
  [-200,34,108,"The Qin, then the Han, forge a unified China."],
  [117,40,18,"Under Trajan, the Roman Empire reaches its greatest extent."],
@@ -137,33 +453,59 @@ const TOUR=[
  [750,30,30,"The Islamic caliphates reach from Spain to Central Asia."],
  [1100,30,112,"Song China leads the world in cities, printing and trade."],
  [1279,45,90,"The Mongol Empire becomes the largest contiguous land empire ever."],
- [1453,41,29,"The Ottomans take Constantinople."],
+ [1453,41.02,28.95,"The Ottoman Turks close in on the last Roman city.","constantinople"],
  [1550,5,-70,"Europeans reach the Americas. The Aztec and Inca empires fall within decades."],
  [1650,28,75,"The Ottomans, Safavids, Mughals and Qing dominate Asia."],
  [1800,40,-30,"Revolutions in America and France reshape the idea of the nation."],
  [1900,5,20,"European colonial powers carve up nearly all of Africa."],
- [1914,48,18,"World War I shatters four empires."],
+ [1914,48.96,3.05,"World War I begins, and the war that will shatter four empires.","marne"],
  [1939,48,20,"World War II begins. It will kill tens of millions."],
+ [1942,30.8,28.95,"By 1942 the Axis reaches its furthest advance, in North Africa and in Russia.","alamein"],
+ [1944,49.36,-0.86,"The Allies open a second front in Western Europe.","normandy"],
  [1945,45,25,"From the ruins rise the United Nations and two rival superpowers."],
  [1960,8,25,"Decolonization: dozens of new nations across Africa and Asia."],
+ [1989,52.52,13.38,"Revolutions sweep across Eastern Europe.","berlin"],
  [1991,55,60,"The Soviet Union dissolves into fifteen independent states."],
  [2024,40,-100,"Today: about two hundred states share one small, blocky world."]];
-const HOLD=4.2,MOVE=3.0,SEG=HOLD+MOVE,TOTAL=(TOUR.length-1)*SEG+HOLD+4;
-// each segment: travel from the previous stop (year + camera) for MOVE s, then hold while the caption types out
-function tourAt(t){const i=Math.min(TOUR.length-1,Math.floor(t/SEG)),u=t-i*SEG;
-  if(i===0)return{i:0,u,typing:true,year:TOUR[0][0],lat:TOUR[0][1],lon:TOUR[0][2]};
-  const a=TOUR[i-1],b=TOUR[i];let f=Math.min(1,u/MOVE);f=f<.5?2*f*f:1-Math.pow(-2*f+2,2)/2;
-  let dl=b[2]-a[2];if(dl>180)dl-=360;if(dl<-180)dl+=360;
-  return u<MOVE?{i:i-1,u:99,typing:false,year:a[0]+(b[0]-a[0])*f,lat:a[1]+(b[1]-a[1])*f,lon:a[2]+dl*f}
-               :{i,u:u-MOVE,typing:true,year:b[0],lat:b[1],lon:b[2]}}
+const HOLD=4.2,MOVE=3.0,DIVE=1.8,RISE=1.8;
+const SEGS=[];let ACC=0;const pushSeg=o=>{o.t0=ACC;ACC+=o.d;SEGS.push(o)};
+TOUR.forEach((s,i)=>{if(i>0)pushSeg({k:'move',i,d:MOVE});pushSeg({k:'hold',i,d:HOLD});if(s[4]){pushSeg({k:'dive',i,d:DIVE});pushSeg({k:'dio',i,d:SITES[s[4]].dur});pushSeg({k:'rise',i,d:RISE})}});
+const TOTAL=ACC+4;
+function tourAt(t){let j=0;for(let q=0;q<SEGS.length;q++)if(SEGS[q].t0<=t)j=q;const sg=SEGS[j],u=Math.min(t-sg.t0,sg.d),b=TOUR[sg.i];
+  const base={i:sg.i,seg:sg,year:b[0],lat:b[1],lon:b[2],ci:sg.i,cu:99,mode:'globe',f:0};
+  if(sg.k==='move'){const a=TOUR[sg.i-1];let f=u/MOVE;f=f<.5?2*f*f:1-Math.pow(-2*f+2,2)/2;let dl=b[2]-a[2];if(dl>180)dl-=360;if(dl<-180)dl+=360;
+    return{...base,ci:sg.i-1,year:a[0]+(b[0]-a[0])*f,lat:a[1]+(b[1]-a[1])*f,lon:a[2]+dl*f}}
+  if(sg.k==='hold')return{...base,cu:u};
+  if(sg.k==='dive')return{...base,mode:'dive',f:u/DIVE};
+  if(sg.k==='rise')return{...base,mode:'rise',f:u/RISE};
+  return{...base,mode:'dio',site:b[4],u}}
+// chapters (shown in the progress bar)
+const CHAP=[[-1e9,'First Empires'],[-600,'The Classical World'],[500,'Faith and Conquest'],[1450,'Gunpowder and Sail'],[1780,'Revolutions and Empires'],[1914,'The World Wars'],[1946,'The Modern World']];
+const chapOf=y=>{let c=0;CHAP.forEach((x,k)=>{if(y>=x[0])c=k});return c};
+const chapSpan=CHAP.map(()=>[1e9,-1e9]);SEGS.forEach(sg=>{const c=chapOf(TOUR[sg.i][0]);chapSpan[c][0]=Math.min(chapSpan[c][0],sg.t0);chapSpan[c][1]=Math.max(chapSpan[c][1],sg.t0+sg.d)});
+chapSpan[chapSpan.length-1][1]=TOTAL;
+const chapEl=document.getElementById('chapbar');
+chapEl.innerHTML='<div class="row"><span id="chapname"></span><span id="chapleft"></span></div><div class="track">'+chapSpan.map(([a,b])=>`<i style="flex:${b-a}"><b></b></i>`).join('')+'</div>';
+const chapFills=[...chapEl.querySelectorAll('.track b')];
+function updChap(){const c=chapOf(TOUR[tourAt(Math.min(T,TOTAL-.01)).i][0]);document.getElementById('chapname').textContent=`Chapter ${c+1} of ${CHAP.length} · ${CHAP[c][1]}`;
+  const left=Math.max(0,TOTAL-T);document.getElementById('chapleft').textContent=`${Math.floor(left/60)}:${String(Math.floor(left%60)).padStart(2,'0')} left`;
+  chapFills.forEach((b,k)=>{const[a,e]=chapSpan[k];b.style.width=Math.max(0,Math.min(1,(T-a)/(e-a)))*100+'%'})}
 
 // ---------------- UI
 const yEl=document.getElementById('year'),eraEl=document.getElementById('era'),capEl=document.getElementById('cap'),credEl=document.getElementById('credits');
+const dateEl=document.getElementById('datebox'),placeEl=document.getElementById('place'),fadeEl=document.getElementById('fade');
 const fmtY=y=>{y=Math.round(y);return y<=0?`${-y+(y===0?1:0)} BCE`:`${y} CE`};
 const eraName=y=>y<-1200?'Bronze Age':y<-500?'Iron Age':y<500?'Classical Antiquity':y<1500?'Middle Ages':y<1800?'Early Modern':y<1945?'Age of Empires & Revolutions':'Contemporary';
-let lastCap=-1;
-function updCaption(i,u){const cur=TOUR[i][3],n=Math.floor(Math.max(0,u-.3)*42);const prev=i>0?TOUR[i-1][3]:'';
-  capEl.innerHTML=(prev?`<span class="prev"></span><br>`:'')+`<span class="cur"></span>`;if(prev)capEl.querySelector('.prev').textContent=prev;capEl.querySelector('.cur').textContent=cur.slice(0,n)+(n<cur.length&&Math.floor(u*4)%2?'_':'')}
+const esc=s=>s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+function setCap(prevHtml,cur,u){const n=Math.floor(Math.max(0,u-.3)*42);
+  capEl.innerHTML=(prevHtml?`<span class="prev">${prevHtml}</span><br>`:'')+`<span class="cur"></span>`;
+  const el=capEl.querySelector('.cur');if(typeof cur==='string')el.textContent=cur.slice(0,n)+(n<cur.length&&Math.floor(u*4)%2?'_':'');
+  else{const full=cur[1];el.innerHTML=`<em>[${esc(cur[0])}]</em> `+esc(full.slice(0,n))+(n<full.length&&Math.floor(u*4)%2?'_':'')}}
+function updCaption(i,u){setCap(i>0?esc(TOUR[i-1][3]):'',TOUR[i][3],u)}
+function dioCaption(S,u){let c=0;S.caps.forEach((x,k)=>{if(u>=x[0])c=k});const cur=S.caps[c],prev=c>0?S.caps[c-1]:null;
+  setCap(prev?`<em>[${esc(prev[1])}]</em> ${esc(prev[2])}`:'',[cur[1],cur[2]],u-cur[0]);
+  const key=S.title+c;if(dateEl._k!==key){dateEl._k=key;
+    dateEl.innerHTML=`<div class="d">${esc(cur[1].replace(/^\d+ /,''))}</div>`+S.teams.map(t=>`<div class="lg"><i style="background:${t.T}"></i>${esc(t.name)}</div>`).join('')+(S.legendExtra||[]).map(t=>`<div class="lg"><i style="background:${t[1]}"></i>${esc(t[0])}</div>`).join('')}}
 
 // interaction: drag to look around, wheel to zoom
 let drag=null,userYaw=0,userPitch=0,idle=99;
@@ -177,29 +519,43 @@ const setPlay=p=>{playing=p;pp.textContent=p?'PAUSE':'PLAY';document.body.classL
 pp.onclick=()=>setPlay(!playing);document.getElementById('restart').onclick=()=>{T=0;setPlay(true)};
 scrub.oninput=()=>{T=scrub.value/1000*TOTAL};
 addEventListener('keydown',e=>{if(e.code==='Space'){setPlay(!playing);e.preventDefault()}});
-addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
+addEventListener('resize',()=>{camera.aspect=dio.cam.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();dio.cam.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
 
-let rotX=0,rotY=0,lastLabK=-1,prev=performance.now();
-function render(now,dtOverride){const dt=dtOverride??Math.min(.1,(now-prev)/1000);prev=now;
+let rotX=0,rotY=0,lastLabK=-1,prev=performance.now();const PV=new THREE.Vector3();
+function render(now,dtOverride){const dt=dtOverride??Math.min(.1,(now-prev)/1000);prev=now;const still=dtOverride!==undefined;
   if(playing){T+=dt;if(T>TOTAL)T=0}idle+=dt;scrub.value=T/TOTAL*1000;
   const s=tourAt(Math.min(T,TOTAL-.001));
+  document.body.classList.toggle('indio',s.mode==='dio');
+  updChap();
+  credEl.style.transition=still?'none':'';credEl.style.opacity=(T<6||T>TOTAL-4)?1:0;
+  if(s.mode==='dio'){const S=SITES[s.site];ensureSite(s.site);updateDio(s.u);
+    fadeEl.style.opacity=Math.max(1-s.u/.45,ssf(S.dur-.45,S.dur,s.u));
+    dioCaption(S,s.u);labEl.style.opacity=0;
+    renderer.render(dio.scene,dio.cam);
+    const L=dio.site.label;PV.set(L[0],dio.site.ground(L[0],L[1])+4,L[1]).project(dio.cam);
+    placeEl.textContent=S.title;placeEl.style.left=(PV.x*.5+.5)*innerWidth+'px';placeEl.style.top=(-PV.y*.5+.5)*innerHeight+'px';
+    return}
+  // globe modes
+  labEl.style.opacity=s.mode==='globe'?1:0;
   let k=0;for(let j=0;j<YEARS.length;j++)if(YEARS[j]<=s.year+1e-6)k=j;
-  setKey(k,dtOverride!==undefined);stepRecolor();if(dtOverride!==undefined)while(pend)stepRecolor();
+  setKey(k,still);stepRecolor();if(still)while(pend)stepRecolor();
   if(k!==lastLabK){updLabels(k);lastLabK=k}
-  // ease back to the tour's focus when the viewer stops dragging
-  if(idle>4){userYaw*=.96;userPitch*=.96}
-  const tx=(s.lat-6)*Math.PI/180,ty=-(s.lon*Math.PI/180)-Math.PI/2;
+  if(idle>4||s.mode!=='globe'){userYaw*=.9;userPitch*=.9}
+  // dive/rise: zoom straight onto the battlefield, fading through the night-blue background
+  const z=s.mode==='dive'?Math.pow(s.f,2.2):s.mode==='rise'?Math.pow(1-s.f,2.2):0;
+  const tx=(s.lat-6*(1-z))*Math.PI/180,ty=-(s.lon*Math.PI/180)-Math.PI/2;
   let dy=ty-rotY;dy=Math.atan2(Math.sin(dy),Math.cos(dy));
-  const kk=dtOverride!==undefined?1:Math.min(1,dt*2.2);rotY+=dy*kk;rotX+=(tx-rotX)*kk;
+  const kk=still||s.mode!=='globe'?1:Math.min(1,dt*2.2);rotY+=dy*kk;rotX+=(tx-rotX)*kk;
   globe.rotation.set(rotX+userPitch,rotY+userYaw,0,'XYZ');
-  cloudG.rotation.y=T*.012;
-  camera.position.z+=(camDist-camera.position.z)*.1;
+  cloudG.rotation.y=T*.012;cloudG.visible=z<.5;
+  const targetZ=camDist+(122-camDist)*z;camera.position.z=s.mode==='globe'&&!still?camera.position.z+(targetZ-camera.position.z)*.1:targetZ;
+  fadeEl.style.opacity=s.mode==='dive'?ssf(.55,1,s.f):s.mode==='rise'?1-ssf(0,.45,s.f):0;
   yEl.textContent=fmtY(s.year);eraEl.textContent=eraName(s.year).toUpperCase();
-  updCaption(s.i,s.u);
-  credEl.style.transition=dtOverride!==undefined?'none':'';credEl.style.opacity=(T<6||T>TOTAL-4)?1:0;
+  if(s.mode==='globe')updCaption(s.ci,s.cu);else updCaption(s.i,99);
   renderer.render(scene,camera);placeLabels()}
 document.getElementById('load').remove();
 window.__seek=t=>{T=t;render(performance.now(),0);render(performance.now(),0)};window.__total=TOTAL;window.__ready=true;
+window.__segs=SEGS.map(s=>[s.k,TOUR[s.i][0],+s.t0.toFixed(1)]);
 if(params.has('t')){setPlay(false);window.__seek(T)}
 if(!params.has('t'))(function loop(now){render(now);requestAnimationFrame(loop)})(performance.now());
 })();
