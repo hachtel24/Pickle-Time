@@ -2,14 +2,15 @@
 // Time, steps, calories and battery all use the system's built-in data bindings, so the watch
 // updates them itself: no sensors, timers or polling in this file.
 
-// Asset sizes from tools/gen_assets.py (layout.json)
-const BIG_W = 92;     // each time digit (fixed width, so the clock never shifts)
-const COLON_W = 30;
-const TIME_Y = 142;
-const DATA_Y = 352;   // stat numbers
-const ICON_Y = 292;   // stat icons (50 x 50)
-const DATA_H = 26;
-const COLS = [116, 240, 364]; // centres of the steps / calories / battery columns
+// Asset sizes from tools/gen_assets.py (layout.json); positions must match its LAYOUT line
+const BIG_W = 82;     // each time digit (fixed width, so the clock never shifts)
+const COLON_W = 28;
+const TIME_Y = 124;
+const DATA_Y = 322;   // stat numbers
+const ICON_Y = 266;   // stat icons (50 x 50)
+const DATA_H = 35;   // digit image height
+const DATA_W = 140;  // wide enough for "12408" / "100%" so the watch never crops the text
+const COLS = [122, 240, 358]; // centres of the steps / calories / battery columns
 
 const range10 = (folder) => [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((d) => `${folder}/${d}.png`);
 const TIME_DIGITS = range10('time');
@@ -48,9 +49,9 @@ function stat(col, icon, type, unit) {
     show_level: hmUI.show_level.ONLY_NORMAL,
   });
   const props = {
-    x: px(cx - 62),
+    x: px(cx - DATA_W / 2),
     y: px(DATA_Y),
-    w: px(124),
+    w: px(DATA_W),
     h: px(DATA_H),
     font_array: DATA_DIGITS,
     h_space: 0,

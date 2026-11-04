@@ -103,22 +103,36 @@ def save(im, rel):
     p = os.path.join(OUT, rel); os.makedirs(os.path.dirname(p), exist_ok=True); im.save(p, optimize=True); return im
 
 # ---------------------------------------------------------------- digit sets
+def ink_bounds(ch, size):
+    """(xmin, xmax, ymin, ymax) of the glyph's actual outline, y down from the baseline."""
+    pts = [p for c in glyph_contours(ch, size)[0] for p in c]
+    xs, ys = [p[0] for p in pts], [p[1] for p in pts]
+    return min(xs), max(xs), min(ys), max(ys)
+
 def digit_set(folder, em, extra, dim=1.0, bevel_k=.055):
-    cap = 0.72 * em
-    pad = int(em * .08)
-    hpx = int(cap + 2 * pad)
-    adv = max(glyph_contours(d, em)[1] for d in "0123456789")
-    wpx = int(adv * .95)
+    # Size every box from the measured ink (round digits overshoot the cap height),
+    # plus a margin, so no glyph is ever cropped. All glyphs in a set share one height
+    # and baseline so they line up when the watch tiles them.
+    chars = list("0123456789") + [c for c, _ in extra]
+    b = {c: ink_bounds(c, em) for c in chars}
+    top = min(v[2] for v in b.values()); bot = max(v[3] for v in b.values())
+    pad = max(4, math.ceil(em * .06))           # room for the anti-aliased edge
+    hpad = 3                                                # sides only need anti-alias room; keeps digits tight
+    hpx = math.ceil(bot - top) + 2 * pad
+    baseline = pad - top
+    dig_ink = max(b[d][1] - b[d][0] for d in "0123456789")
+    wpx = math.ceil(dig_ink) + 2 * hpad                      # fixed width so the clock never shifts
     out = {}
-    for ch, name in [(d, d) for d in "0123456789"] + extra:
-        cw = wpx if ch.isdigit() else int(glyph_contours(ch, em)[1] * .85)
-        m = glyph_mask(ch, em * SS, cw * SS, hpx * SS, (pad + cap) * SS)
-        out[name] = save(chrome(m, bevel=em * SS * bevel_k, y0=pad * SS, y1=(pad + cap) * SS, dim=dim), f"{folder}/{name}.png")
+    for ch in chars:
+        name = dict(extra).get(ch, ch)
+        cw = wpx if ch.isdigit() else math.ceil(b[ch][1] - b[ch][0]) + 2 * hpad
+        m = glyph_mask(ch, em * SS, cw * SS, hpx * SS, baseline * SS)
+        out[name] = save(chrome(m, bevel=em * SS * bevel_k, y0=(baseline + top) * SS, y1=(baseline + bot) * SS, dim=dim), f"{folder}/{name}.png")
     return out, wpx, hpx
 
-big, BW, BH = digit_set("time", 118, [(":", "colon")])
-aod, _, _ = digit_set("time_aod", 118, [(":", "colon")], dim=.42)
-small, SW, SH = digit_set("data", 31, [("%", "percent")], bevel_k=.07)
+big, BW, BH = digit_set("time", 104, [(":", "colon")])
+aod, _, _ = digit_set("time_aod", 104, [(":", "colon")], dim=.42)
+small, SW, SH = digit_set("data", 26, [("%", "percent")], bevel_k=.07)
 
 # ---------------------------------------------------------------- icons (drawn as vector shapes, chromed)
 def icon(name, draw_fn, size=50):
@@ -163,23 +177,25 @@ bg = Image.new("RGBA", (480, 480), (0, 0, 0, 255)); bg.alpha_composite(bez)
 save(bg.convert("RGB"), "bg.png")
 
 # ---------------------------------------------------------------- layout constants (shared with the JS)
+TIME_Y, ICON_Y, DATA_Y, COLS = 124, 266, 322, [122, 240, 358]   # keep in sync with watchface/index.js
 LAYOUT = {"BW": BW, "BH": BH, "CW": big["colon"].width, "SW": SW, "SH": SH, "PW": small["percent"].width}
 json.dump(LAYOUT, open(os.path.join(OUT, "..", "..", "layout.json"), "w"))
 
 # ---------------------------------------------------------------- mock preview with sample values
 def compose(time_txt, data):
     im = bg.copy().convert("RGBA")
-    tw = 4 * BW + LAYOUT["CW"]; x = (480 - tw) // 2; y = 142
+    tw = 4 * BW + LAYOUT["CW"]; x = (480 - tw) // 2; y = TIME_Y
     for ch in time_txt:
         g = big["colon"] if ch == ":" else big[ch]; im.alpha_composite(g, (x, y)); x += g.width
     for cx, key, txt in data:
-        ic = icons[key]; im.alpha_composite(ic, (cx - ic.width // 2, 292))
+        ic = icons[key]; im.alpha_composite(ic, (cx - ic.width // 2, ICON_Y))
         glyphs = [small["percent"] if c == "%" else small[c] for c in txt]
         wsum = sum(g.width for g in glyphs); x = cx - wsum // 2
-        for g in glyphs: im.alpha_composite(g, (x, 352)); x += g.width
+        for g in glyphs: im.alpha_composite(g, (x, DATA_Y)); x += g.width
     mask = Image.new("L", (480, 480), 0); ImageDraw.Draw(mask).ellipse([0, 0, 479, 479], fill=255)
     out = Image.new("RGBA", (480, 480), (0, 0, 0, 0)); out.paste(im, (0, 0), mask)
     return out
-pv = compose("10:08", [(116, "steps", "8532"), (240, "cal", "412"), (364, "battery", "87%")])
+pv = compose("10:08", [(COLS[0], "steps", "8532"), (COLS[1], "cal", "412"), (COLS[2], "battery", "87%")])
+compose("23:58", [(COLS[0], "steps", "12408"), (COLS[1], "cal", "1037"), (COLS[2], "battery", "100%")]).save(PREVIEW.replace(".png", "_wide.png"))
 pv.save(PREVIEW); save(pv.resize((240, 240), Image.LANCZOS), "preview.png")
 print("assets ok", LAYOUT)
