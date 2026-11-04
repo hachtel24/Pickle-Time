@@ -68,8 +68,24 @@ def env(t):
     band = np.exp(-((t - .5) / .022) ** 2)                 # sharp horizon line
     return c * (1 - band) + HOR * band
 
-def chrome(mask, bevel, y0=None, y1=None, strength=2.2, dim=1.0):
+# Frosted teal chrome for the hands: teal studio, soft wide horizon (satin, not mirror),
+# broad dim highlight and a fine grain, like brushed / bead-blasted anodised metal.
+TSKY0, TSKY1 = np.array([.62, .97, .93]), np.array([.12, .60, .62])
+THOR = np.array([.02, .20, .23])
+TGND0, TGND1 = np.array([.04, .30, .33]), np.array([.36, .80, .78])
+
+def env_teal(t):
+    t = np.clip(t, 0, 1)[..., None]
+    sky = TSKY0 + (TSKY1 - TSKY0) * np.clip(t / .5, 0, 1)
+    gnd = TGND0 + (TGND1 - TGND0) * np.clip((t - .5) / .5, 0, 1)
+    c = np.where(t < .5, sky, gnd)
+    band = np.exp(-((t - .5) / .09) ** 2)                  # blurred horizon = frosted
+    return c * (1 - band) + THOR * band
+
+def chrome(mask, bevel, y0=None, y1=None, strength=2.2, dim=1.0, env_fn=None,
+           spec_pow=60, spec_k=1.1, grain=0.0, alpha=1.0, seed=7):
     """mask: supersampled bool array. Returns RGBA image downsampled by SS."""
+    env_fn = env_fn or env
     h, w = mask.shape
     m = Image.fromarray((mask * 255).astype(np.uint8))
     dome = np.asarray(m.filter(ImageFilter.GaussianBlur(bevel)), float) / 255
@@ -82,15 +98,17 @@ def chrome(mask, bevel, y0=None, y1=None, strength=2.2, dim=1.0):
     if y0 is None:
         rows = np.where(mask.any(1))[0]; y0, y1 = rows.min(), rows.max()
     t = (ys - y0) / max(1, (y1 - y0)) + n[..., 1] * .55                 # bevel normals bend the reflection
-    col = env(t)
+    col = env_fn(t)
     L = np.array([-.45, -.6, .66]); L /= np.linalg.norm(L)
     H = L + np.array([0, 0, 1]); H /= np.linalg.norm(H)
-    spec = np.clip((n * H).sum(2), 0, 1) ** 60
-    col = col + spec[..., None] * 1.1
+    spec = np.clip((n * H).sum(2), 0, 1) ** spec_pow
+    col = col + spec[..., None] * spec_k
+    if grain:
+        col = col * (1 + grain * np.random.default_rng(seed).standard_normal((h, w, 1)))
     rim = np.clip(1 - height * 3, 0, 1)                                  # thin dark edge for definition
     col = col * (1 - .35 * rim[..., None])
     col = np.clip(col * dim, 0, 1)
-    rgba = np.dstack([col * 255, mask * 255]).astype(np.uint8)
+    rgba = np.dstack([col * 255, mask * 255 * alpha]).astype(np.uint8)
     im = Image.fromarray(rgba, "RGBA")
     # premultiplied downsample so edges stay clean on black
     pm = np.asarray(im, float); pm[..., :3] *= pm[..., 3:4] / 255
@@ -176,13 +194,65 @@ bez = chrome(ring | tick, bevel=SS * 2.2, y0=0, y1=S)
 bg = Image.new("RGBA", (480, 480), (0, 0, 0, 255)); bg.alpha_composite(bez)
 save(bg.convert("RGB"), "bg.png")
 
+
+# ---------------------------------------------------------------- frosted teal chrome hands
+# Each hand is drawn pointing at 12 with its pivot at (PIVOT_X, PIVOT_Y) inside the image;
+# Zepp's TIME_POINTER rotates the image about that point (hour_posX / hour_posY etc.).
+def frosted(mask, bevel, dim=1.0, alpha=.93):
+    return chrome(mask, bevel, strength=1.6, dim=dim, env_fn=env_teal, spec_pow=14, spec_k=.38, grain=.05, alpha=alpha)
+
+def halo(im, r=3, k=.55):
+    """Soft dark outline so the hands stay readable when they sweep over the chrome digits."""
+    a = im.split()[3].filter(ImageFilter.MaxFilter(3)).filter(ImageFilter.GaussianBlur(r))
+    sh = Image.new("RGBA", im.size, (0, 0, 0, 0)); sh.putalpha(a.point(lambda v: int(v * k)))
+    sh.alpha_composite(im); return sh
+
+def hand(name, length, tail, width, tip_w, shape, dim=1.0, alpha=.93):
+    m = 8                                                   # margin for the halo
+    W = int(width + 2 * m); H = int(length + tail + 2 * m)
+    px_, py_ = W // 2, m + length                          # pivot
+    im = Image.new("1", (W * SS, H * SS), 0); d = ImageDraw.Draw(im)
+    X = lambda v: (px_ + v) * SS; Y = lambda v: (py_ - v) * SS     # v measured up from the pivot
+    if shape == "dauphine":                                 # widest a third of the way out, sharp tip
+        pts = [(0, length), (width / 2, length * .32), (width * .30, -tail), (-width * .30, -tail), (-width / 2, length * .32)]
+        d.polygon([(X(x), Y(y)) for x, y in pts], fill=1)
+        d.ellipse([X(-width * .42), Y(width * .42), X(width * .42), Y(-width * .42)], fill=1)
+    else:                                                   # needle with a round counterweight
+        d.polygon([(X(x), Y(y)) for x, y in [(-tip_w / 2, length), (tip_w / 2, length), (width * .16, -tail), (-width * .16, -tail)]], fill=1)
+        d.ellipse([X(-width / 2), Y(-tail * .62 + width / 2), X(width / 2), Y(-tail * .62 - width / 2)], fill=1)
+    img = halo(frosted(np.asarray(im, bool), bevel=SS * max(1.2, width * .16), dim=dim, alpha=alpha))
+    save(img, f"hands/{name}.png")
+    return img, (px_, py_)
+
+HANDS = {
+    "hour":   hand("hour",   122, 22, 28, 0, "dauphine"),
+    "minute": hand("minute", 190, 26, 21, 0, "dauphine"),
+    "second": hand("second", 206, 46, 12, 2.6, "needle", alpha=1.0),
+    "hour_aod":   hand("hour_aod",   122, 22, 28, 0, "dauphine", dim=.45),
+    "minute_aod": hand("minute_aod", 190, 26, 21, 0, "dauphine", dim=.45),
+}
+# centre cap: frosted teal disc with a polished silver pin
+CAP = 26
+cm = Image.new("1", (CAP * SS, CAP * SS), 0); ImageDraw.Draw(cm).ellipse([0, 0, CAP * SS - 1, CAP * SS - 1], fill=1)
+cap = frosted(np.asarray(cm, bool), bevel=SS * 3, alpha=1.0)
+pm = Image.new("1", (CAP * SS, CAP * SS), 0); r0 = CAP * SS * .28
+ImageDraw.Draw(pm).ellipse([CAP * SS / 2 - r0, CAP * SS / 2 - r0, CAP * SS / 2 + r0, CAP * SS / 2 + r0], fill=1)
+cap.alpha_composite(chrome(np.asarray(pm, bool), bevel=SS * 1.5))
+save(cap, "hands/cap.png")
+
 # ---------------------------------------------------------------- layout constants (shared with the JS)
 TIME_Y, ICON_Y, DATA_Y, COLS = 124, 266, 322, [122, 240, 358]   # keep in sync with watchface/index.js
-LAYOUT = {"BW": BW, "BH": BH, "CW": big["colon"].width, "SW": SW, "SH": SH, "PW": small["percent"].width}
+LAYOUT = {"BW": BW, "BH": BH, "CW": big["colon"].width, "SW": SW, "SH": SH, "PW": small["percent"].width,
+          "HANDS": {k: {"w": v[0].width, "h": v[0].height, "posX": v[1][0], "posY": v[1][1]} for k, v in HANDS.items()}, "CAP": CAP}
 json.dump(LAYOUT, open(os.path.join(OUT, "..", "..", "layout.json"), "w"))
 
 # ---------------------------------------------------------------- mock preview with sample values
-def compose(time_txt, data):
+def put_hand(im, key, deg):
+    img, (hx, hy) = HANDS[key]
+    big_ = Image.new("RGBA", (600, 600), (0, 0, 0, 0)); big_.alpha_composite(img, (300 - hx, 300 - hy))
+    im.alpha_composite(big_.rotate(-deg, resample=Image.BICUBIC, center=(300, 300)), (240 - 300, 240 - 300))
+
+def compose(time_txt, data, hms=None):
     im = bg.copy().convert("RGBA")
     tw = 4 * BW + LAYOUT["CW"]; x = (480 - tw) // 2; y = TIME_Y
     for ch in time_txt:
@@ -192,10 +262,14 @@ def compose(time_txt, data):
         glyphs = [small["percent"] if c == "%" else small[c] for c in txt]
         wsum = sum(g.width for g in glyphs); x = cx - wsum // 2
         for g in glyphs: im.alpha_composite(g, (x, DATA_Y)); x += g.width
+    if hms:
+        h, mi, se = hms
+        put_hand(im, "hour", (h % 12 + mi / 60) * 30); put_hand(im, "minute", (mi + se / 60) * 6); put_hand(im, "second", se * 6)
+        im.alpha_composite(cap, (240 - CAP // 2, 240 - CAP // 2))
     mask = Image.new("L", (480, 480), 0); ImageDraw.Draw(mask).ellipse([0, 0, 479, 479], fill=255)
     out = Image.new("RGBA", (480, 480), (0, 0, 0, 0)); out.paste(im, (0, 0), mask)
     return out
-pv = compose("10:08", [(COLS[0], "steps", "8532"), (COLS[1], "cal", "412"), (COLS[2], "battery", "87%")])
-compose("23:58", [(COLS[0], "steps", "12408"), (COLS[1], "cal", "1037"), (COLS[2], "battery", "100%")]).save(PREVIEW.replace(".png", "_wide.png"))
+pv = compose("10:08", [(COLS[0], "steps", "8532"), (COLS[1], "cal", "412"), (COLS[2], "battery", "87%")], (10, 8, 36))
+compose("23:58", [(COLS[0], "steps", "12408"), (COLS[1], "cal", "1037"), (COLS[2], "battery", "100%")], (23, 58, 12)).save(PREVIEW.replace(".png", "_wide.png"))
 pv.save(PREVIEW); save(pv.resize((240, 240), Image.LANCZOS), "preview.png")
 print("assets ok", LAYOUT)

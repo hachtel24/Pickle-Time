@@ -21,6 +21,51 @@ const TIME_W = 4 * BIG_W + COLON_W;
 const HOUR_X = Math.round((480 - TIME_W) / 2);
 const MINUTE_X = HOUR_X + 2 * BIG_W + COLON_W;
 
+// Frosted teal chrome hands (tools/gen_assets.py -> layout.json "HANDS").
+// posX / posY = the pivot point inside each hand image; the watch rotates the image about it.
+const CENTER = 240;
+const CAP = 26;
+const HANDS = {
+  hour: { posX: 22, posY: 130 },
+  minute: { posX: 18, posY: 198 },
+  second: { posX: 14, posY: 214 },
+};
+
+function hands(suffix, withSeconds, level) {
+  const p = {
+    hour_centerX: px(CENTER),
+    hour_centerY: px(CENTER),
+    hour_posX: px(HANDS.hour.posX),
+    hour_posY: px(HANDS.hour.posY),
+    hour_path: `hands/hour${suffix}.png`,
+    minute_centerX: px(CENTER),
+    minute_centerY: px(CENTER),
+    minute_posX: px(HANDS.minute.posX),
+    minute_posY: px(HANDS.minute.posY),
+    minute_path: `hands/minute${suffix}.png`,
+    show_level: level,
+  };
+  if (withSeconds) {
+    Object.assign(p, {
+      second_centerX: px(CENTER),
+      second_centerY: px(CENTER),
+      second_posX: px(HANDS.second.posX),
+      second_posY: px(HANDS.second.posY),
+      second_path: 'hands/second.png',
+      second_cover_path: 'hands/cap.png', // centre cap sits on top of all three hands
+      second_cover_x: px(CENTER - CAP / 2),
+      second_cover_y: px(CENTER - CAP / 2),
+    });
+  } else {
+    Object.assign(p, {
+      minute_cover_path: 'hands/cap.png',
+      minute_cover_x: px(CENTER - CAP / 2),
+      minute_cover_y: px(CENTER - CAP / 2),
+    });
+  }
+  return p;
+}
+
 function timeProps(digits, colon, level) {
   return {
     hour_zero: 1,
@@ -81,8 +126,12 @@ WatchFace({
     stat(1, 'cal', hmUI.data_type.CAL);
     stat(2, 'battery', hmUI.data_type.BATTERY, 'data/percent.png');
 
-    // Always-on display: dimmed chrome time only, on a black screen (lowest power)
+    // Analog hands on top of the digital time; the system keeps them in sync with the clock
+    hmUI.createWidget(hmUI.widget.TIME_POINTER, hands('', true, hmUI.show_level.ONLY_NORMAL));
+
+    // Always-on display: dimmed chrome time + dimmed hour/minute hands on black (lowest power)
     hmUI.createWidget(hmUI.widget.IMG_TIME, timeProps(AOD_DIGITS, 'time_aod/colon.png', hmUI.show_level.ONAL_AOD));
+    hmUI.createWidget(hmUI.widget.TIME_POINTER, hands('_aod', false, hmUI.show_level.ONAL_AOD)); // dimmed, no second hand
   },
 
   onInit() {},

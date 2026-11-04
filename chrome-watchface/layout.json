@@ -1,1 +1,1 @@
-{"BW": 82, "BH": 121, "CW": 28, "SW": 25, "SH": 35, "PW": 35}
+{"BW": 82, "BH": 121, "CW": 28, "SW": 25, "SH": 35, "PW": 35, "HANDS": {"hour": {"w": 44, "h": 160, "posX": 22, "posY": 130}, "minute": {"w": 37, "h": 232, "posX": 18, "posY": 198}, "second": {"w": 28, "h": 268, "posX": 14, "posY": 214}, "hour_aod": {"w": 44, "h": 160, "posX": 22, "posY": 130}, "minute_aod": {"w": 37, "h": 232, "posX": 18, "posY": 198}}, "CAP": 26}
