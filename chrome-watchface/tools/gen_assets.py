@@ -254,6 +254,10 @@ def put_hand(im, key, deg):
 
 def compose(time_txt, data, hms=None):
     im = bg.copy().convert("RGBA")
+    if hms:                                             # hands first: they sit behind digits + stats
+        h, mi, se = hms
+        put_hand(im, "hour", (h % 12 + mi / 60) * 30); put_hand(im, "minute", (mi + se / 60) * 6); put_hand(im, "second", se * 6)
+        im.alpha_composite(cap, (240 - CAP // 2, 240 - CAP // 2))
     tw = 4 * BW + LAYOUT["CW"]; x = (480 - tw) // 2; y = TIME_Y
     for ch in time_txt:
         g = big["colon"] if ch == ":" else big[ch]; im.alpha_composite(g, (x, y)); x += g.width
@@ -262,10 +266,6 @@ def compose(time_txt, data, hms=None):
         glyphs = [small["percent"] if c == "%" else small[c] for c in txt]
         wsum = sum(g.width for g in glyphs); x = cx - wsum // 2
         for g in glyphs: im.alpha_composite(g, (x, DATA_Y)); x += g.width
-    if hms:
-        h, mi, se = hms
-        put_hand(im, "hour", (h % 12 + mi / 60) * 30); put_hand(im, "minute", (mi + se / 60) * 6); put_hand(im, "second", se * 6)
-        im.alpha_composite(cap, (240 - CAP // 2, 240 - CAP // 2))
     mask = Image.new("L", (480, 480), 0); ImageDraw.Draw(mask).ellipse([0, 0, 479, 479], fill=255)
     out = Image.new("RGBA", (480, 480), (0, 0, 0, 0)); out.paste(im, (0, 0), mask)
     return out

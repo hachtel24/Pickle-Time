@@ -52,7 +52,7 @@ function hands(suffix, withSeconds, level) {
       second_posX: px(HANDS.second.posX),
       second_posY: px(HANDS.second.posY),
       second_path: 'hands/second.png',
-      second_cover_path: 'hands/cap.png', // centre cap sits on top of all three hands
+      second_cover_path: 'hands/cap.png', // centre cap sits on top of all three hands (still under the digits)
       second_cover_x: px(CENTER - CAP / 2),
       second_cover_y: px(CENTER - CAP / 2),
     });
@@ -120,18 +120,19 @@ WatchFace({
       show_level: hmUI.show_level.ONLY_NORMAL,
     });
 
+    // Analog hands sit on the background, BEHIND the digits and stats (widgets stack in
+    // creation order). The system keeps them in sync with the clock.
+    hmUI.createWidget(hmUI.widget.TIME_POINTER, hands('', true, hmUI.show_level.ONLY_NORMAL));
+
     hmUI.createWidget(hmUI.widget.IMG_TIME, timeProps(TIME_DIGITS, 'time/colon.png', hmUI.show_level.ONLY_NORMAL));
 
     stat(0, 'steps', hmUI.data_type.STEP);
     stat(1, 'cal', hmUI.data_type.CAL);
     stat(2, 'battery', hmUI.data_type.BATTERY, 'data/percent.png');
 
-    // Analog hands on top of the digital time; the system keeps them in sync with the clock
-    hmUI.createWidget(hmUI.widget.TIME_POINTER, hands('', true, hmUI.show_level.ONLY_NORMAL));
-
     // Always-on display: dimmed chrome time + dimmed hour/minute hands on black (lowest power)
-    hmUI.createWidget(hmUI.widget.IMG_TIME, timeProps(AOD_DIGITS, 'time_aod/colon.png', hmUI.show_level.ONAL_AOD));
     hmUI.createWidget(hmUI.widget.TIME_POINTER, hands('_aod', false, hmUI.show_level.ONAL_AOD)); // dimmed, no second hand
+    hmUI.createWidget(hmUI.widget.IMG_TIME, timeProps(AOD_DIGITS, 'time_aod/colon.png', hmUI.show_level.ONAL_AOD));
   },
 
   onInit() {},

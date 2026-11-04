@@ -130,7 +130,7 @@ also what you'd upload if you ever publish the face in the Zepp store.
 ### What the code does (`watchface/index.js`)
 - `IMG_TIME` draws the hours and minutes from the chrome digit images, with the colon
   as the hour's "unit" image.
-- `TIME_POINTER` draws the **frosted teal chrome hands** (hour, minute and a sweeping second
+- `TIME_POINTER` draws the **frosted teal chrome hands**, layered just above the background so the digits and stats sit on top of them (hour, minute and a sweeping second
   hand) plus a centre cap. The watch rotates each hand image around its pivot point
   (`posX` / `posY`), so it stays in sync with the system clock and needs no timers.
 - Three `TEXT_IMG` widgets are bound to `hmUI.data_type.STEP`, `CAL` and `BATTERY`, so
