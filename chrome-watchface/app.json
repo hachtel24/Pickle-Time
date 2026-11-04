@@ -9,7 +9,9 @@
       "name": "1.0.0"
     },
     "icon": "icon.png",
-    "cover": ["preview.png"],
+    "cover": [
+      "preview.png"
+    ],
     "vender": "chachtel",
     "description": "Polished chrome digital time with frosted teal chrome hands, steps, calories and battery."
   },
@@ -25,18 +27,40 @@
     "common": {
       "module": {
         "watchface": {
-          "path": "watchface/index",
+          "path": "watchface/round/index",
           "main": 1,
           "editable": 0,
           "lockscreen": 1
         }
       },
-      "platforms": [{ "st": "r" }],
+      "platforms": [
+        {
+          "st": "r"
+        }
+      ],
       "designWidth": 480
+    },
+    "square": {
+      "module": {
+        "watchface": {
+          "path": "watchface/square/index",
+          "main": 1,
+          "editable": 0,
+          "lockscreen": 1
+        }
+      },
+      "platforms": [
+        {
+          "st": "s"
+        }
+      ],
+      "designWidth": 390
     }
   },
   "i18n": {
-    "en-US": { "appName": "Liquid Chrome" }
+    "en-US": {
+      "appName": "Liquid Chrome"
+    }
   },
   "defaultLanguage": "en-US",
   "debug": false

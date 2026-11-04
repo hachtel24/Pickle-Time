@@ -17,8 +17,18 @@ minute hands, for the lowest power draw.
 
 On the watch, go to Settings → About. If the system version mentions Zepp OS, use Route A.
 
-This project targets **round** screens. On square ones (GTS 3/4, Bip 5, Active
-square), the layout needs moving. The images themselves still work.
+**Both screen shapes are built in.** Zeus automatically picks the right one for the model
+you choose in `zeus preview`:
+
+| Shape | Screen | Watches | Code / images |
+|---|---|---|---|
+| **Square** (rounded corners) | 390 × 450 px, 86 px corner radius | **Active 2 Square**, GTS 3, GTS 4, Bip 5 and other Zepp OS squares | `watchface/square/`, `assets/square.s/` |
+| **Round** | 480 × 480 px design, scaled to 454/466 px screens | GTR 3/4, Balance, Active 2 (round), T-Rex | `watchface/round/`, `assets/common.r/` |
+
+The square layout is drawn natively at 390 × 450, the size Zepp uses as its reference for
+square screens. The bezel follows the screen's rounded corners.
+
+![square preview](assets/square.s/preview.png)
 
 ---
 
@@ -121,13 +131,14 @@ zeus preview
 | `zeus preview` says not logged in | Run `zeus login` again, using the same account as the phone. |
 | Error about `appId` | Check step 5: the number has no quotes, and the comma is still there. |
 | Scan does nothing or times out | Sign in to the phone and computer with the same Zepp account, then run `zeus preview` again for a fresh code. Codes expire. |
-| Face installs but items are off-position | Send me a photo of the watch. The positions are the numbers at the top of `watchface/index.js`. |
-| Hands are offset from the centre | Same fix: check `CENTER` and the `HANDS` pivot numbers in `watchface/index.js`. |
+| Face installs but items are off-position | Send me a photo of the watch. Positions live in `PROFILES` in `tools/gen_assets.py`. |
+| Hands are offset from the centre | Same fix: the centre and hand pivots are generated into `watchface/layouts.js`. |
+| Steps / calories show 0 | Normal right after install. The watch fills them in from its own counters, and they update as you move. |
 
 To keep an installable copy, `zeus build` writes a package to `dist/`. That package is
 also what you'd upload if you ever publish the face in the Zepp store.
 
-### What the code does (`watchface/index.js`)
+### What the code does (`watchface/face.js`)
 - `IMG_TIME` draws the hours and minutes from the chrome digit images, with the colon
   as the hour's "unit" image.
 - `TIME_POINTER` draws the **frosted teal chrome hands**, layered just above the background so the digits and stats sit on top of them (hour, minute and a sweeping second
@@ -137,7 +148,10 @@ also what you'd upload if you ever publish the face in the Zepp store.
   the watch fills in the live values itself. Battery gets a chrome `%` sign.
 - `show_level: ONLY_NORMAL` keeps the full face to the normal screen. A second `IMG_TIME`
   and `TIME_POINTER`, with `ONAL_AOD` and dimmed images, handle the always-on display.
-- `px()` scales the 480 px design to your watch's real resolution.
+- `watchface/round/index.js` and `watchface/square/index.js` each just call `buildFace()` with
+  their numbers from `watchface/layouts.js`. That file is generated together with the
+  images, so sizes and positions can't drift apart.
+- `px()` scales the design width (480 round, 390 square) to your watch's real resolution.
 
 ---
 
@@ -147,8 +161,10 @@ These watches can't run coded faces, but the same chrome images work in Zepp's f
 browser tool, **Watch Face Maker** (linked from Zepp's developer docs).
 
 1. Open Watch Face Maker, sign in, and pick your exact watch model.
-2. **Background:** upload `assets/common.r/bg.png`. For the GTR 2 (454 × 454), let the
-   tool scale it. For the square GTS 2, use a plain black background and skip the bezel.
+2. **Background:** for the GTR 2 (454 × 454), upload `assets/common.r/bg.png` and let the tool
+   scale it. For the square **GTS 2 / 2e (348 × 442)** or GTS 2 mini (306 × 354), use the
+   `assets/square.s/` images: `bg.png` is 390 × 450, so let the tool scale it, or use plain
+   black and skip the bezel.
 3. **Time:** add a digital time element and upload `time/0.png` … `time/9.png` as the
    digit images and `time/colon.png` as the separator.
 4. **Steps / Calories / Battery:** add each data element, upload `data/0.png` …
@@ -169,20 +185,21 @@ bold font as the Liquid Chrome videos, shaded as chrome.
 
 ```
 pip install numpy pillow
-python tools/gen_assets.py helvetiker_bold.typeface.json assets/common.r preview.png
+python tools/gen_assets.py helvetiker_bold.typeface.json assets previews/
 ```
 (`helvetiker_bold.typeface.json` comes with three.js under `examples/fonts/`.) Change
 the colours in `env()` to retint the chrome, for example a Seahawks action-green horizon.
 The hands use `env_teal()` (the `TSKY` / `THOR` / `TGND` colours) and the `frosted()` settings:
 raise `spec_pow` for shinier hands, or lower `grain` for less frost.
-If you change digit sizes, update the constants at the top of `watchface/index.js` to
-match the new `layout.json`.
+Sizes and positions for each shape are in `PROFILES`. The script rewrites
+`watchface/layouts.js` itself, so there's nothing to copy across by hand.
 
 ## Status
-- Checked: the JavaScript and app.json parse, all 43 referenced images exist, the image
-  sizes match the layout constants, and no digit image is cropped. The `TIME_POINTER`
-  property names match the watch face template that ships inside Zepp's own Zeus CLI.
-- **Not yet tested on a watch or in Zepp's simulator.** The Zeus build needs Zepp's
+- Checked: the JavaScript and app.json parse, and both targets have all 43 images they use.
+  No digit image is cropped. The face code was also run against a mock of the watch's `hmUI`
+  API for both layouts: every widget gets valid numbers and existing image paths, and the
+  hands pivot at the exact screen centre. `TIME_POINTER`, the `common` + `.r`/`.s` asset
+  folders, and `px()` match the templates that ship inside Zepp's own Zeus CLI.
+- **Not yet tested on a real watch or in Zepp's simulator.** The Zeus build needs Zepp's
   servers, which weren't reachable from where this was made. The first real test is
-  step 6 above. If anything is off on your model, it will most likely be positions, which
-  are the constants at the top of `watchface/index.js`.
+  step 6 above.

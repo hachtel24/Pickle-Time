@@ -1,1 +1,72 @@
-{"BW": 82, "BH": 121, "CW": 28, "SW": 25, "SH": 35, "PW": 35, "HANDS": {"hour": {"w": 44, "h": 160, "posX": 22, "posY": 130}, "minute": {"w": 37, "h": 232, "posX": 18, "posY": 198}, "second": {"w": 28, "h": 268, "posX": 14, "posY": 214}, "hour_aod": {"w": 44, "h": 160, "posX": 22, "posY": 130}, "minute_aod": {"w": 37, "h": 232, "posX": 18, "posY": 198}}, "CAP": 26}
+{
+ "round": {
+  "W": 480,
+  "H": 480,
+  "CX": 240,
+  "CY": 240,
+  "BIG_W": 82,
+  "BIG_H": 121,
+  "COLON_W": 28,
+  "DATA_H": 35,
+  "DATA_W": 140,
+  "ICON": 50,
+  "TIME_Y": 124,
+  "ICON_Y": 266,
+  "DATA_Y": 322,
+  "COLS": [
+   122,
+   240,
+   358
+  ],
+  "CAP": 26,
+  "HANDS": {
+   "hour": {
+    "posX": 22,
+    "posY": 130
+   },
+   "minute": {
+    "posX": 18,
+    "posY": 198
+   },
+   "second": {
+    "posX": 14,
+    "posY": 214
+   }
+  }
+ },
+ "square": {
+  "W": 390,
+  "H": 450,
+  "CX": 195,
+  "CY": 225,
+  "BIG_W": 71,
+  "BIG_H": 102,
+  "COLON_W": 25,
+  "DATA_H": 29,
+  "DATA_W": 108,
+  "ICON": 42,
+  "TIME_Y": 112,
+  "ICON_Y": 256,
+  "DATA_Y": 306,
+  "COLS": [
+   86,
+   195,
+   304
+  ],
+  "CAP": 22,
+  "HANDS": {
+   "hour": {
+    "posX": 20,
+    "posY": 106
+   },
+   "minute": {
+    "posX": 17,
+    "posY": 166
+   },
+   "second": {
+    "posX": 13,
+    "posY": 180
+   }
+  }
+ }
+}
